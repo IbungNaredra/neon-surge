@@ -219,33 +219,59 @@
     #upgradeOverlay {
       position: absolute;
       inset: 0;
-      background: rgba(8, 12, 20, 0.94);
+      background: rgba(8, 12, 20, 0.96);
       z-index: 50;
       display: flex;
       flex-direction: column;
-      padding: 16px 10px 100px;
+      padding: 12px 12px calc(var(--ctl-h) + 10px);
+      min-height: 0;
     }
-    #upgradeTimer { text-align: center; font-size: 9px; color: #ffe500; margin-bottom: 12px; }
+    #upgradeTop {
+      flex-shrink: 0;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    #upgradeTimer { font-size: 11px; color: #ffe500; letter-spacing: 1px; }
+    .upgrade-sub {
+      margin-top: 8px;
+      font-size: 8px;
+      line-height: 1.7;
+      color: #9bc;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
     #upgradeCards {
+      flex: 1 1 auto;
+      min-height: 120px;
       display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      flex: 1;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-content: flex-start;
+      justify-content: center;
       align-items: stretch;
-      padding-bottom: 8px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 4px 0 8px;
     }
     .card {
-      flex: 0 0 200px;
+      flex: 1 1 130px;
+      max-width: 180px;
+      min-height: 110px;
       background: #0d1f3c;
       border: 2px solid #ff0080;
-      padding: 12px;
-      font-size: 7px;
-      line-height: 1.7;
-      box-shadow: 0 0 16px rgba(255, 0, 128, 0.25);
+      padding: 10px 10px 8px;
+      font-size: 8px;
+      line-height: 1.55;
+      box-shadow: 0 0 12px rgba(255, 0, 128, 0.22);
+      cursor: pointer;
     }
-    .card h3 { color: #00f0ff; font-size: 8px; margin-bottom: 8px; }
+    .card h3 { color: #00f0ff; font-size: 9px; margin-bottom: 6px; line-height: 1.35; }
+    .card p { font-size: 7px; color: #cde; }
     .card .tag { color: #ff69b4; font-size: 6px; margin-top: 8px; }
     .card.selected { border-color: #ffe500; box-shadow: 0 0 20px rgba(255, 229, 0, 0.35); }
+    .card.picked { border-color: #00f0ff; box-shadow: 0 0 16px rgba(0, 240, 255, 0.45); outline: 2px solid #00f0ff; }
+    #btnUpgradeOk { font-size: 10px; flex-shrink: 0; align-self: center; margin-top: 8px; padding: 12px 28px; }
     #bossBanner {
       position: absolute;
       inset: 0;
@@ -329,8 +355,12 @@
       <div id="bossBanner"></div>
       <div id="waveClear" class="hidden"></div>
       <div id="upgradeOverlay" class="hidden">
-        <div id="upgradeTimer">CHOOSE UPGRADE — 30</div>
+        <div id="upgradeTop">
+          <div id="upgradeTimer">Upgrade — 30s</div>
+          <p id="upgradeHint" class="upgrade-sub">Pick one stat. Gun: keep or swap.</p>
+        </div>
         <div id="upgradeCards"></div>
+        <button type="button" class="neon" id="btnUpgradeOk">OK</button>
       </div>
     </div>
     <div id="gameover" class="screen hidden">
@@ -378,8 +408,8 @@
   };
   const P_COL = ['#00F0FF', '#39FF14', '#FF69B4', '#FF9500'];
 
-  /* Tuned ~12% easier than design doc base curve */
-  const waveDifficulty = (n) => Math.pow(1.27, n - 1);
+  /* Gentler per-wave ramp (easier mid / late waves) */
+  const waveDifficulty = (n) => Math.pow(1.12, n - 1);
   const playerMult = (p) => 1 + 0.25 * (p - 1);
   const totalDifficulty = (wave, players) => waveDifficulty(wave) * playerMult(Math.max(1, players));
 
@@ -481,11 +511,11 @@
       { hp: 10, sp: 120, dmg: 6, arm: 0, sz: 8 },
       { hp: 60, sp: 30, dmg: 18, arm: 8, sz: 22 },
     ][typeIdx];
-    const hp = base.hp * diff * 0.9;
-    const dmg = base.dmg * diff * 0.88;
-    let sp = base.sp * diff;
-    sp = Math.min(sp, base.sp * 1.82);
-    const arm = base.arm * diff * 0.9;
+    const hp = base.hp * diff * 0.72;
+    const dmg = base.dmg * diff * 0.72;
+    let sp = base.sp * diff * 0.94;
+    sp = Math.min(sp, base.sp * 1.68);
+    const arm = base.arm * diff * 0.75;
     return { hp, mh: hp, dmg, sp, arm, sz: base.sz };
   }
 
@@ -560,10 +590,10 @@
     const diff = totalDifficulty(wave, pCount);
     const baseHp = [200, 180, 320, 240, 220, 200, 260, 350, 230, 280][bi];
     const baseDmg = 15;
-    const mh = baseHp * diff * 3.05;
-    const dmg = baseDmg * diff * 3.35;
-    const sp = 60 * diff * 0.75;
-    const arm = diff * 4.25 + (bi === 2 ? diff * 4.25 : 0);
+    const mh = baseHp * diff * 2.55;
+    const dmg = baseDmg * diff * 2.75;
+    const sp = 60 * diff * 0.72;
+    const arm = diff * 3.5 + (bi === 2 ? diff * 3.5 : 0);
     return {
       boss: true,
       bi,
@@ -1290,8 +1320,9 @@
       m.players.forEach((np, i) => {
         const pl = run.players[i];
         if (!pl || pl.id !== np.id) return;
-        pl.x = np.x;
-        pl.y = np.y;
+        const k = ws && !isHost && i === run.localIdx ? 0.58 : 1;
+        pl.x += (np.x - pl.x) * k;
+        pl.y += (np.y - pl.y) * k;
         pl.hp = np.hp;
         pl.mh = np.mh;
         pl.down = np.down;
@@ -1401,7 +1432,7 @@
     run.floats = run.floats.filter((f) => f.life > 0);
     if (ws && isHost && roomCode) {
       run._netAcc = (run._netAcc || 0) + dt;
-      if (run._netAcc >= 0.05) {
+      if (run._netAcc >= 0.022) {
         run._netAcc = 0;
         try {
           ws.send(JSON.stringify(serializeGameState()));
@@ -1417,16 +1448,71 @@
   }
 
   function openUpgrade() {
+    run._upgradeFinalized = false;
+    run._guestUpgradeSent = false;
+    run.collatedPicks = {};
     run.phase = 'upgrade';
+    const coop = ws && roomCode && run.pCount > 1;
+    if (coop && isHost) {
+      run.upgradeDecks = {};
+      for (const pl of run.players) {
+        run.upgradeDecks[pl.id] = buildSerializedDeckForPlayer(pl);
+      }
+      const selfPid = (run.players[run.localIdx] && run.players[run.localIdx].id) || myId;
+      run.upgradeDeckRaw = run.upgradeDecks[myId] || run.upgradeDecks[selfPid];
+      try {
+        ws.send(
+          JSON.stringify({
+            type: 'WAVE_CLEAR',
+            roomCode,
+            wave: run.wave,
+            decks: run.upgradeDecks,
+          }),
+        );
+      } catch (_) {}
+    } else {
+      run.upgradeDeckRaw = buildSerializedDeckForPlayer(run.players[run.localIdx]);
+    }
+    if (!run.upgradeDeckRaw || !run.upgradeDeckRaw.length) {
+      const pl = run.players[run.localIdx];
+      if (pl) run.upgradeDeckRaw = buildSerializedDeckForPlayer(pl);
+    }
+    $('btnUpgradeOk').disabled = false;
+    $('upgradeHint').textContent = 'Pick one stat. Gun: keep or swap.';
     $('upgradeOverlay').classList.remove('hidden');
-    buildUpgradeCards();
+    buildUpgradeCardsFromDeck();
     let t = 30;
     const iv = setInterval(() => {
       t--;
-      $('upgradeTimer').textContent = 'CHOOSE UPGRADE — ' + t;
+      $('upgradeTimer').textContent = 'Upgrade — ' + t + 's';
       if (t <= 0) {
         clearInterval(iv);
-        confirmUpgradePick();
+        onUpgradeTimerExpire();
+      }
+    }, 1000);
+    run._upIv = iv;
+  }
+
+  function openUpgradeFromHostMessage(m) {
+    if (!run || m.wave !== run.wave || !m.decks) return;
+    const selfPid = (run.players[run.localIdx] && run.players[run.localIdx].id) || myId;
+    run.upgradeDeckRaw = m.decks[myId] || m.decks[selfPid];
+    if (!run.upgradeDeckRaw || !run.upgradeDeckRaw.length) return;
+    run._upgradeFinalized = false;
+    run._guestUpgradeSent = false;
+    run.phase = 'upgrade';
+    $('btnUpgradeOk').disabled = false;
+    $('upgradeHint').textContent = 'Pick one stat. Gun: keep or swap.';
+    $('upgradeOverlay').classList.remove('hidden');
+    buildUpgradeCardsFromDeck();
+    let t = 30;
+    if (run._upIv) clearInterval(run._upIv);
+    const iv = setInterval(() => {
+      t--;
+      $('upgradeTimer').textContent = 'Upgrade — ' + t + 's';
+      if (t <= 0) {
+        clearInterval(iv);
+        onUpgradeTimerExpire();
       }
     }, 1000);
     run._upIv = iv;
@@ -1443,44 +1529,311 @@
     { id: 'xp', name: 'DATA LEAK', desc: '+20% XP gain', apply: (p) => { p.xpMult *= 1.2; } },
   ];
 
-  function randUps() {
-    const pool = STAT_UPS.slice();
-    const out = [];
-    for (let i = 0; i < 3; i++) {
-      const ix = (Math.random() * pool.length) | 0;
-      out.push(pool.splice(ix, 1)[0]);
+  function shuffleInPlace(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = a[i];
+      a[i] = a[j];
+      a[j] = t;
     }
-    return out;
+    return a;
   }
 
-  function buildUpgradeCards() {
+  function buildSerializedDeckForPlayer(pl) {
+    const pool = STAT_UPS.slice();
+    const stats = [];
+    for (let j = 0; j < 3; j++) {
+      const ix = (Math.random() * pool.length) | 0;
+      const row = pool.splice(ix, 1)[0];
+      stats.push({
+        kind: 'stat',
+        statId: row.id,
+        name: row.name,
+        desc: row.desc,
+      });
+    }
+    const cur = pl.weaponId;
+    let wPool = WEAPONS.filter((x) => x.id !== cur);
+    if (!wPool.length) wPool = WEAPONS.slice();
+    const w = pick(wPool);
+    const keepCard = {
+      kind: 'keep',
+      weaponId: cur,
+      name: 'KEEP GUN',
+      desc: 'No weapon change',
+    };
+    const weaponCard = {
+      kind: 'wpn',
+      weaponId: w.id,
+      name: w.name,
+      desc: (w.kind === 'gun' ? 'GUN' : 'MELEE') + ' · ' + w.trait,
+    };
+    return shuffleInPlace([keepCard, weaponCard, ...stats]);
+  }
+
+  function hydrateDeck(raw) {
+    if (!raw || !Array.isArray(raw)) return [];
+    return raw
+      .map((c) => {
+        if (!c || !c.kind) return null;
+        if (c.kind === 'keep') {
+          return {
+            kind: 'keep',
+            name: c.name || 'KEEP GUN',
+            desc: c.desc || 'No weapon change',
+            weaponId: c.weaponId,
+            apply() {},
+          };
+        }
+        if (c.kind === 'wpn') {
+          return {
+            kind: 'wpn',
+            name: c.name,
+            desc: c.desc,
+            weaponId: c.weaponId,
+            apply(p) {
+              p.weaponId = c.weaponId;
+            },
+          };
+        }
+        const statKey = c.statId != null ? c.statId : c.id;
+        const row = STAT_UPS.find((s) => s.id === statKey);
+        return {
+          kind: 'stat',
+          name: c.name,
+          desc: c.desc,
+          statId: statKey,
+          apply: row ? row.apply : () => {},
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function applyUpgradeFromDeck(pl, rawDeck, wIdx, sIdx) {
+    const wC = rawDeck[wIdx];
+    const sC = rawDeck[sIdx];
+    if (wC && wC.kind === 'wpn') pl.weaponId = wC.weaponId;
+    if (sC && sC.kind === 'stat') {
+      const id = sC.statId != null ? sC.statId : sC.id;
+      const row = STAT_UPS.find((s) => s.id === id);
+      if (row) row.apply(pl);
+    }
+  }
+
+  function normalizePick(rawDeck, pick) {
+    let sIdx = [...pick].find((i) => rawDeck[i] && rawDeck[i].kind === 'stat');
+    let wIdx = [...pick].find(
+      (i) => rawDeck[i] && (rawDeck[i].kind === 'wpn' || rawDeck[i].kind === 'keep'),
+    );
+    if (sIdx === undefined || sIdx < 0) {
+      sIdx = rawDeck.findIndex((c) => c && c.kind === 'stat');
+    }
+    if (wIdx === undefined || wIdx < 0) {
+      wIdx = rawDeck.findIndex((c) => c && c.kind === 'keep');
+      if (wIdx < 0) wIdx = rawDeck.findIndex((c) => c && c.kind === 'wpn');
+    }
+    return { wIdx, sIdx };
+  }
+
+  function refreshUpgradeCardStyles() {
+    const root = $('upgradeCards');
+    const deck = run.upgradeDeck || [];
+    [...root.children].forEach((c, idx) => {
+      c.classList.toggle('picked', run.upgradePick.has(idx));
+    });
+    const picks = [...run.upgradePick];
+    const st = picks.find((i) => deck[i] && deck[i].kind === 'stat');
+    const wv = picks.find(
+      (i) => deck[i] && (deck[i].kind === 'wpn' || deck[i].kind === 'keep'),
+    );
+    const gunLbl =
+      wv === undefined
+        ? 'keeping (optional: tap SWAP)'
+        : deck[wv].kind === 'wpn'
+          ? 'swapping'
+          : 'keeping';
+    $('upgradeHint').textContent =
+      (st !== undefined ? 'Stat OK' : 'Tap a stat') + ' · Gun: ' + gunLbl;
+  }
+
+  function toggleUpgradeCard(i) {
+    const deck = run.upgradeDeck;
+    if (!deck || !deck[i]) return;
+    const c = deck[i];
+    const kind = c.kind;
+    const s = run.upgradePick;
+    if (s.has(i)) {
+      s.delete(i);
+      refreshUpgradeCardStyles();
+      return;
+    }
+    if (kind === 'stat') {
+      for (const j of [...s]) {
+        if (deck[j] && deck[j].kind === 'stat') s.delete(j);
+      }
+      s.add(i);
+    } else if (kind === 'wpn' || kind === 'keep') {
+      for (const j of [...s]) {
+        const d = deck[j];
+        if (d && (d.kind === 'wpn' || d.kind === 'keep')) s.delete(j);
+      }
+      s.add(i);
+    }
+    refreshUpgradeCardStyles();
+  }
+
+  function buildUpgradeCardsFromDeck() {
     const root = $('upgradeCards');
     root.innerHTML = '';
-    run.pickOpts = randUps();
-    run.pickSel = 0;
-    run.pickOpts.forEach((u, i) => {
+    const pl = run.players[run.localIdx];
+    let raw = run.upgradeDeckRaw;
+    if (!raw || !Array.isArray(raw) || !raw.length) {
+      if (pl) raw = buildSerializedDeckForPlayer(pl);
+      run.upgradeDeckRaw = raw;
+    }
+    run.upgradeDeck = hydrateDeck(raw);
+    if (!run.upgradeDeck.length && pl) {
+      run.upgradeDeckRaw = buildSerializedDeckForPlayer(pl);
+      run.upgradeDeck = hydrateDeck(run.upgradeDeckRaw);
+    }
+    run.upgradePick = new Set();
+    run.upgradeDeck.forEach((u, i) => {
       const d = document.createElement('div');
-      d.className = 'card' + (i === 0 ? ' selected' : '');
-      d.innerHTML = '<h3>' + u.name + '</h3><p>' + u.desc + '</p><div class="tag">STAT</div>';
-      d.onclick = () => {
-        [...root.children].forEach((c) => c.classList.remove('selected'));
-        d.classList.add('selected');
-        run.pickSel = i;
-      };
+      d.className = 'card';
+      d.dataset.i = String(i);
+      const tag = u.kind === 'wpn' ? 'SWAP' : u.kind === 'keep' ? 'KEEP' : 'STAT';
+      d.innerHTML = '<h3>' + u.name + '</h3><p>' + u.desc + '</p><div class="tag">' + tag + '</div>';
+      d.onclick = () => toggleUpgradeCard(i);
       root.appendChild(d);
     });
+    refreshUpgradeCardStyles();
   }
 
-  function confirmUpgradePick() {
-    if (!run || run.phase !== 'upgrade') return;
-    if (run._upIv) clearInterval(run._upIv);
-    const u = run.pickOpts[run.pickSel];
-    if (u) u.apply(run.players[run.localIdx]);
+  function finishUpgradeLocal(indices) {
+    if (!run || run._upgradeFinalized) return;
+    run._upgradeFinalized = true;
+    const raw = run.upgradeDeckRaw;
+    const pl = run.players[run.localIdx];
+    const { wIdx, sIdx } = normalizePick(raw, new Set(indices));
+    applyUpgradeFromDeck(pl, raw, wIdx, sIdx);
     $('upgradeOverlay').classList.add('hidden');
     run.phase = 'combat';
     run.wave++;
     refreshHud();
     startWave();
+  }
+
+  function tryFinalizeAllUpgrades() {
+    if (!run || run.phase !== 'upgrade' || run._upgradeFinalized || !isHost) return;
+    const coop = ws && roomCode && run.pCount > 1;
+    if (!coop) return;
+    for (const pl of run.players) {
+      if (!run.collatedPicks[pl.id]) return;
+    }
+    run._upgradeFinalized = true;
+    if (run._upIv) {
+      clearInterval(run._upIv);
+      run._upIv = null;
+    }
+    for (const pl of run.players) {
+      const idxs = run.collatedPicks[pl.id];
+      const raw = run.upgradeDecks[pl.id];
+      const { wIdx, sIdx } = normalizePick(raw, new Set(idxs));
+      applyUpgradeFromDeck(pl, raw, wIdx, sIdx);
+    }
+    $('upgradeOverlay').classList.add('hidden');
+    run.phase = 'combat';
+    run.wave++;
+    refreshHud();
+    startWave();
+    try {
+      ws.send(JSON.stringify({ type: 'NEXT_WAVE', roomCode, wave: run.wave }));
+    } catch (_) {}
+  }
+
+  function onUpgradeTimerExpire() {
+    if (!run || run.phase !== 'upgrade') return;
+    if (run._upIv) {
+      clearInterval(run._upIv);
+      run._upIv = null;
+    }
+    const coop = ws && roomCode && run.pCount > 1;
+    const raw = run.upgradeDeckRaw;
+    if (coop && !isHost) {
+      if (!run._guestUpgradeSent) {
+        const { wIdx, sIdx } = normalizePick(raw, run.upgradePick);
+        run.upgradePick = new Set([wIdx, sIdx]);
+        refreshUpgradeCardStyles();
+        confirmUpgradePick();
+      }
+      return;
+    }
+    if (coop && isHost) {
+      for (const pl of run.players) {
+        if (!run.collatedPicks[pl.id]) {
+          const r = run.upgradeDecks[pl.id];
+          const { wIdx, sIdx } = normalizePick(r, new Set());
+          const a = Math.min(wIdx, sIdx),
+            b = Math.max(wIdx, sIdx);
+          run.collatedPicks[pl.id] = [a, b];
+        }
+      }
+      tryFinalizeAllUpgrades();
+      return;
+    }
+    const { wIdx, sIdx } = normalizePick(raw, run.upgradePick);
+    const a = Math.min(wIdx, sIdx),
+      b = Math.max(wIdx, sIdx);
+    finishUpgradeLocal([a, b]);
+  }
+
+  function confirmUpgradePick() {
+    if (!run || run.phase !== 'upgrade' || run._upgradeFinalized) return;
+    if (run._upIv) {
+      clearInterval(run._upIv);
+      run._upIv = null;
+    }
+    const raw = run.upgradeDeckRaw;
+    const { wIdx, sIdx } = normalizePick(raw, run.upgradePick);
+    const indices = wIdx <= sIdx ? [wIdx, sIdx] : [sIdx, wIdx];
+    const coop = ws && roomCode && run.pCount > 1;
+    if (coop && !isHost) {
+      if (run._guestUpgradeSent) return;
+      run._guestUpgradeSent = true;
+      $('btnUpgradeOk').disabled = true;
+      $('upgradeHint').textContent = 'Waiting for squad...';
+      try {
+        ws.send(
+          JSON.stringify({
+            type: 'UPGRADE_CHOSEN',
+            roomCode,
+            playerId: myId,
+            indices,
+            wave: run.wave,
+          }),
+        );
+      } catch (_) {}
+      return;
+    }
+    if (coop && isHost) {
+      run.collatedPicks[myId] = indices;
+      $('btnUpgradeOk').disabled = true;
+      $('upgradeHint').textContent = 'Waiting for squad...';
+      try {
+        ws.send(
+          JSON.stringify({
+            type: 'UPGRADE_CHOSEN',
+            roomCode,
+            playerId: myId,
+            indices,
+            wave: run.wave,
+          }),
+        );
+      } catch (_) {}
+      tryFinalizeAllUpgrades();
+      return;
+    }
+    finishUpgradeLocal(indices);
   }
 
   function refreshHud() {
@@ -1982,15 +2335,33 @@
   }
 
   let last = performance.now();
+  function guestPredictMovement(dt) {
+    if (!run || isHost || !ws || run.phase !== 'combat') return;
+    const pl = run.players[run.localIdx];
+    if (!pl || pl.down) return;
+    const m = pl.input;
+    const spd = pl.speed * pl.spdMult;
+    const n = Math.hypot(m.x, m.y) || 0;
+    if (n > 0.04) {
+      pl.x += (m.x / n) * spd * dt;
+      pl.y += (m.y / n) * spd * dt;
+      pl.x = clamp(pl.x, 20, arena.w - 20);
+      pl.y = clamp(pl.y, 20, arena.h - 20);
+    }
+  }
+
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (gameState === 'PLAYING' && run) {
       if (!ws || isHost) {
         gameLoopStep(dt);
-      } else if (pendingNetState) {
-        applyGameState(pendingNetState);
-        pendingNetState = null;
+      } else {
+        if (pendingNetState) {
+          applyGameState(pendingNetState);
+          pendingNetState = null;
+        }
+        guestPredictMovement(dt);
       }
       render();
       refreshHud();
@@ -2001,7 +2372,7 @@
   function sendNetInput(vec) {
     if (!ws || isHost || !roomCode || gameState !== 'PLAYING') return;
     const t = performance.now();
-    if (sendNetInput._lt != null && t - sendNetInput._lt < 35) return;
+    if (sendNetInput._lt != null && t - sendNetInput._lt < 12) return;
     sendNetInput._lt = t;
     try {
       ws.send(
@@ -2090,8 +2461,8 @@
       knob.style.top = '50%';
       knob.style.marginLeft = '-22px';
       knob.style.marginTop = '-22px';
+      if (run.players[run.localIdx]) run.players[run.localIdx].input = { x: 0, y: 0 };
       if (ws && !isHost) sendNetInput({ x: 0, y: 0 });
-      else if (run.players[run.localIdx]) run.players[run.localIdx].input = { x: 0, y: 0 };
       return;
     }
     const cl = Math.min(d, joyR);
@@ -2102,8 +2473,8 @@
     knob.style.marginLeft = '-22px';
     knob.style.marginTop = '-22px';
     const iv = { x: dx / joyR, y: dy / joyR };
+    if (run.players[run.localIdx]) run.players[run.localIdx].input = iv;
     if (ws && !isHost) sendNetInput(iv);
-    else if (run.players[run.localIdx]) run.players[run.localIdx].input = iv;
   }
   joy.addEventListener(
     'touchmove',
@@ -2118,8 +2489,8 @@
     joy.classList.remove('active');
     knob.style.left = '50%';
     knob.style.top = '50%';
+    if (run && run.players[run.localIdx]) run.players[run.localIdx].input = { x: 0, y: 0 };
     if (ws && !isHost) sendNetInput({ x: 0, y: 0 });
-    else if (run && run.players[run.localIdx]) run.players[run.localIdx].input = { x: 0, y: 0 };
   }
   joy.addEventListener('touchend', endJoy);
   joy.addEventListener('touchcancel', endJoy);
@@ -2154,8 +2525,8 @@
     if (x || y) {
       const n = Math.hypot(x, y);
       const iv = { x: x / n, y: y / n };
+      if (run.players[run.localIdx]) run.players[run.localIdx].input = iv;
       if (ws && !isHost) sendNetInput(iv);
-      else if (run.players[run.localIdx]) run.players[run.localIdx].input = iv;
     }
   }
   setInterval(pollKeys, 16);
@@ -2207,6 +2578,7 @@
     show('menu', true);
     gameState = 'MENU';
   };
+  $('btnUpgradeOk').onclick = () => confirmUpgradePick();
 
   function connectWs(mode) {
     $('lobbyErr').textContent = '';
@@ -2240,6 +2612,33 @@
       }
       if (m.type === 'GAME_STATE' && run && !isHost) {
         pendingNetState = m;
+        return;
+      }
+      if (m.type === 'WAVE_CLEAR' && run && !isHost) {
+        if (m.wave === run.wave && m.decks && m.decks[myId]) openUpgradeFromHostMessage(m);
+        return;
+      }
+      if (m.type === 'UPGRADE_CHOSEN' && run && isHost) {
+        if (!roomCode || m.roomCode !== roomCode) return;
+        if (run.phase !== 'upgrade' || run._upgradeFinalized) return;
+        if (m.wave != null && m.wave !== run.wave) return;
+        if (m.playerId && Array.isArray(m.indices) && m.indices.length >= 2) {
+          run.collatedPicks[m.playerId] = m.indices;
+          tryFinalizeAllUpgrades();
+        }
+        return;
+      }
+      if (m.type === 'NEXT_WAVE' && run && !isHost) {
+        if (run._upIv) {
+          clearInterval(run._upIv);
+          run._upIv = null;
+        }
+        run._guestUpgradeSent = false;
+        run._upgradeFinalized = false;
+        if (m.wave != null) run.wave = m.wave;
+        $('upgradeOverlay').classList.add('hidden');
+        run.phase = 'combat';
+        refreshHud();
         return;
       }
       if (m.type === 'ROOM_CREATED') {

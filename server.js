@@ -173,6 +173,7 @@ wss.on('connection', (ws) => {
       'PLAYER_REVIVED',
       'WAVE_CLEAR',
       'UPGRADE_CHOSEN',
+      'NEXT_WAVE',
       'GAME_OVER',
       'UPGRADE_CONFIRM',
       'BOSS_EVENT',
