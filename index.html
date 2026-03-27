@@ -257,7 +257,7 @@
     .card {
       flex: 1 1 130px;
       max-width: 180px;
-      min-height: 110px;
+      min-height: 124px;
       background: #0d1f3c;
       border: 2px solid #ff0080;
       padding: 10px 10px 8px;
@@ -349,6 +349,18 @@
     }
     #customRun .adv-grid label { display: inline-block; min-width: 160px; color: #8ab; }
     #chkCustomAdv { margin-right: 8px; accent-color: #00f0ff; }
+    #customWeaponDesc {
+      font-size: 7px;
+      line-height: 1.65;
+      color: #9bc;
+      max-width: 420px;
+      margin: 10px auto 0;
+      padding: 10px 12px;
+      background: rgba(13, 31, 60, 0.65);
+      border: 1px solid #0d1f3c;
+      text-align: left;
+      min-height: 2.8em;
+    }
   </style>
 </head>
 <body>
@@ -391,6 +403,7 @@
         <label for="selCustomWeapon">Starting weapon</label>
         <select id="selCustomWeapon" class="level-select"></select>
       </div>
+      <p id="customWeaponDesc"></p>
       <div class="level-row" style="text-align:left;max-width:420px;">
         <label style="display:flex;align-items:center;cursor:pointer;">
           <input type="checkbox" id="chkCustomAdv" />
@@ -434,7 +447,7 @@
       <div id="upgradeOverlay" class="hidden">
         <div id="upgradeTop">
           <div id="upgradeTimer">Upgrade — 30s</div>
-          <p id="upgradeHint" class="upgrade-sub">Pick one stat. Gun: keep or swap.</p>
+          <p id="upgradeHint" class="upgrade-sub">Pick one stat. Weapon: keep or swap.</p>
         </div>
         <div id="upgradeCards"></div>
         <button type="button" class="neon" id="btnUpgradeOk">OK</button>
@@ -497,26 +510,84 @@
   function addMel(id, name, base, rate, r, trait, extra = {}) {
     WEAPONS.push({ id, name, kind: 'mel', base, rate, r, trait, ...extra });
   }
-  addGun('G1', 'PIXEL PISTOL', 12, 1.5, 400, 'Standard single shot');
-  addGun('G2', 'NEON BURST', 8, 3.0, 500, '3-shot burst', { burst: 3, burstDelay: 0.06 });
-  addGun('G3', 'PLASMA RIFLE', 22, 0.8, 350, 'Pierce 2', { pierce: 2 });
-  addGun('G4', 'LASER BEAM', 6, 10, 0, 'Hitscan ticks', { beam: true, beamTick: 0.1 });
-  addGun('G5', 'SCATTER SHOT', 10, 1.0, 450, '5-round cone', { scatter: 5, spread: 0.45 });
-  addGun('G6', 'VOLT CANNON', 35, 0.4, 300, 'Heavy shot');
-  addGun('G7', 'CHAIN ZAP', 15, 1.2, 380, 'Chains +2', { chain: 2 });
-  addGun('G8', 'NOVA SHELL', 20, 0.6, 280, '60px AoE', { explode: 60 });
-  addGun('G9', 'PHANTOM DART', 18, 1.0, 600, 'Slow 2s', { slow: 2, slowAmt: 0.4 });
-  addGun('G10', 'TWIN BLASTER', 9, 2.0, 420, '2-target', { twin: true });
-  addMel('M1', 'PIXEL BLADE', 22, 1.5, 75, 'Slash');
-  addMel('M2', 'SHOCK FIST', 18, 2.0, 65, 'Fast');
-  addMel('M3', 'PLASMA WHIP', 28, 0.8, 110, 'Wide');
-  addMel('M4', 'VOID AXE', 45, 0.5, 80, 'Slow heavy');
-  addMel('M5', 'NEON HAMMER', 35, 0.6, 90, 'Knockback', { knock: 50 });
-  addMel('M6', 'BLADE STORM', 14, 3.0, 70, 'Rapid spin');
-  addMel('M7', 'CRYO LANCE', 25, 1.0, 85, 'Freeze 3s', { freeze: 3 });
-  addMel('M8', 'FLAME RING', 16, 10, 80, 'Burn aura', { aura: true, auraTick: 0.12 });
-  addMel('M9', 'GRAVITY PUNCH', 30, 0.9, 75, 'Pull', { pull: 40 });
-  addMel('M10', 'PHANTOM BLADE', 20, 1.2, 95, 'Dodge buff', { dodge: 0.25 });
+  addGun('G1', 'PIXEL PISTOL', 12, 1.5, 400, 'Standard single shot', {
+    desc: 'One chunky slug per shot. Steady, readable DPS at medium range.',
+  });
+  addGun('G2', 'NEON BURST', 8, 3.0, 500, '3-shot burst', {
+    burst: 3,
+    burstDelay: 0.06,
+    desc: 'Tight 3-round burst each time you fire — spike damage on a sprinting target.',
+  });
+  addGun('G3', 'PLASMA RIFLE', 22, 0.8, 350, 'Pierce 2', {
+    pierce: 2,
+    desc: 'Slow heavy bolts that pierce up to 2 enemies in a line.',
+  });
+  addGun('G4', 'LASER BEAM', 6, 10, 0, 'Hitscan ticks', {
+    beam: true,
+    beamTick: 0.1,
+    desc: 'Continuous hitscan beam — no projectile travel; melts the nearest foe in range.',
+  });
+  addGun('G5', 'SCATTER SHOT', 10, 1.0, 450, '5-round cone', {
+    scatter: 5,
+    spread: 0.45,
+    desc: 'Five pellets in a wide cone — brutal point-blank, falls off at range.',
+  });
+  addGun('G6', 'VOLT CANNON', 35, 0.4, 300, 'Heavy shot', {
+    desc: 'Single massive round. Long wind-up, enormous punch per hit.',
+  });
+  addGun('G7', 'CHAIN ZAP', 15, 1.2, 380, 'Chains +2', {
+    chain: 2,
+    desc: 'After the bolt hits, zaps up to 2 more foes within chain range (~118px), each hop slightly softer.',
+  });
+  addGun('G8', 'NOVA SHELL', 20, 0.6, 280, '60px AoE', {
+    explode: 60,
+    desc: 'On impact, detonates in a 60px nova — chips whole clusters.',
+  });
+  addGun('G9', 'PHANTOM DART', 18, 1.0, 600, 'Slow 2s', {
+    slow: 2,
+    slowAmt: 0.4,
+    desc: 'Fast dart that slows hit enemies for 2s so you can kite or focus them.',
+  });
+  addGun('G10', 'TWIN BLASTER', 9, 2.0, 420, '2-target', {
+    twin: true,
+    desc: 'Each salvo tries to tag the two nearest targets in range with separate bolts.',
+  });
+  addMel('M1', 'PIXEL BLADE', 22, 1.5, 75, 'Slash', {
+    desc: 'Short forward arc. Baseline melee: balanced reach and speed.',
+  });
+  addMel('M2', 'SHOCK FIST', 18, 2.0, 65, 'Fast', {
+    desc: 'Rapid short punches — lower reach, very high swing rate.',
+  });
+  addMel('M3', 'PLASMA WHIP', 28, 0.8, 110, 'Wide', {
+    desc: 'Wide electrified sweep — great for crowds, slower swings.',
+  });
+  addMel('M4', 'VOID AXE', 45, 0.5, 80, 'Slow heavy', {
+    desc: 'Huge per-swing damage; long recovery between cleaves.',
+  });
+  addMel('M5', 'NEON HAMMER', 35, 0.6, 90, 'Knockback', {
+    knock: 50,
+    desc: 'Sends enemies flying back on hit — space control and choke denial.',
+  });
+  addMel('M6', 'BLADE STORM', 14, 3.0, 70, 'Rapid spin', {
+    desc: 'Blur of cuts — very fast ticks of AoE melee around you.',
+  });
+  addMel('M7', 'CRYO LANCE', 25, 1.0, 85, 'Freeze 3s', {
+    freeze: 3,
+    desc: 'Freezes struck enemies in place for 3s (boss immunity rules apply).',
+  });
+  addMel('M8', 'FLAME RING', 16, 10, 80, 'Burn aura', {
+    aura: true,
+    auraTick: 0.12,
+    desc: 'Constant burning ring — damages everything in melee radius on a fast pulse.',
+  });
+  addMel('M9', 'GRAVITY PUNCH', 30, 0.9, 75, 'Pull', {
+    pull: 40,
+    desc: 'Pulls hit enemies toward you — setup for finishers or grouping.',
+  });
+  addMel('M10', 'PHANTOM BLADE', 20, 1.2, 95, 'Dodge buff', {
+    dodge: 0.25,
+    desc: 'After a hit, grants a one-shot dodge window against the next damage.',
+  });
 
   const ENEMY_NAMES = [
     'CRAWLER', 'RUSHER', 'TANK', 'SPLITTER', 'SHOOTER', 'GHOST', 'BOMBER', 'REGENERATOR', 'SWARM DRONE', 'SENTINEL',
@@ -527,6 +598,10 @@
   ];
 
   const arena = { x0: 0, y0: 0, w: 400, h: 600 };
+  /** Max distance (px) for CHAIN ZAP to jump to the next target (README §6.3 G7). */
+  const CHAIN_LINK_RANGE = 118;
+  /** Damage multiplier per chain hop after the first enemy (0.88² for 2nd hop). */
+  const CHAIN_DMG_PER_HOP = 0.88;
   let canvas, ctx;
   let gameState = 'MENU';
   let run = null;
@@ -562,6 +637,74 @@
 
   function weaponById(id) {
     return WEAPONS.find((w) => w.id === id) || WEAPONS[0];
+  }
+
+  function weaponEffectDesc(w) {
+    return (w && (w.desc || w.trait)) || '';
+  }
+
+  function easeOutCubic(t) {
+    t = Math.max(0, Math.min(1, t));
+    return 1 - Math.pow(1 - t, 3);
+  }
+  function easeInCubic(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * t;
+  }
+  function easeInOutCubic(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+  function smoothstep(edge0, edge1, x) {
+    const t = Math.max(0, Math.min(1, edge1 === edge0 ? 0 : (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  function projPfxForWeapon(w, variant) {
+    const v = variant | 0;
+    const base = { shape: 'square', col: COL.proj, glow: COL.proj, sz: 3, spin: false, trail: false };
+    if (!w || w.kind !== 'gun') return base;
+    const tbl = {
+      G1: { shape: 'square', col: '#ffe566', glow: '#ffaa00', sz: 3.2 },
+      G2: { shape: 'diamond', col: '#66fff8', glow: '#00c8ff', sz: 2.8 + v * 0.35, spin: true },
+      G3: { shape: 'capsule', col: '#88ffcc', glow: '#00ffaa', sz: 3.5, spin: true },
+      G4: { shape: 'square', col: COL.proj, glow: COL.proj, sz: 3 },
+      G5: { shape: 'pellet', col: '#ffcc66', glow: '#ff8800', sz: 2.2 + (v % 3) * 0.25 },
+      G6: { shape: 'orb', col: '#fff8a0', glow: '#ffe500', sz: 5, col2: '#ffffff' },
+      G7: { shape: 'zig', col: '#aaccff', glow: '#4488ff', sz: 4, spin: true },
+      G8: { shape: 'ring', col: '#ff8800', glow: '#ff4400', sz: 4.5 },
+      G9: { shape: 'bolt', col: '#c8a8ff', glow: '#8866ff', sz: 3.2 },
+      G10: { shape: 'twin', col: '#ff66aa', glow: '#ff0080', sz: 2.8, twinPhase: v },
+    };
+    return { ...base, ...(tbl[w.id] || {}) };
+  }
+
+  function meleeFxStart(pl, w) {
+    const r = w.r;
+    const face = pl.facing || 1;
+    const T = {
+      M1: { style: 'arc', r, col1: '#00f0ff', col2: '#0088cc', t: 0.22, maxT: 0.22, w: 4, span: 1.05, face },
+      M2: { style: 'burst', r: r * 0.65, col1: '#ffe500', col2: '#ff8800', t: 0.17, maxT: 0.17, rays: 8, face },
+      M3: { style: 'fan', r: r * 1.08, col1: '#ff66ff', col2: '#8800ff', t: 0.26, maxT: 0.26, span: 1.35, face },
+      M4: { style: 'wedge', r: r * 0.95, col1: '#220044', col2: '#aa66ff', t: 0.28, maxT: 0.28, span: 0.75, face },
+      M5: { style: 'hammer', r, col1: '#ff0080', col2: '#ffff00', t: 0.26, maxT: 0.26, face },
+      M6: { style: 'spin', r: r * 0.88, col1: '#00f0ff', col2: '#39ff14', t: 0.2, maxT: 0.2, arms: 5, face },
+      M7: { style: 'ice', r: r * 0.92, col1: '#a8ffff', col2: '#4488ff', t: 0.24, maxT: 0.24, span: 1.15, face },
+      M8: { style: 'aura', r, col1: '#ff6600', col2: '#ff2200', t: 0.32, maxT: 0.32, face },
+      M9: { style: 'pull', r: r * 0.75, col1: '#88aaff', col2: '#4444ff', t: 0.2, maxT: 0.2, face },
+      M10: { style: 'phantom', r, col1: '#ff69b4', col2: '#ffffff', t: 0.24, maxT: 0.24, span: 0.95, face },
+    };
+    pl.meleeFx = T[w.id] || {
+      style: 'arc',
+      r,
+      col1: '#00f0ff',
+      col2: '#006688',
+      t: 0.22,
+      maxT: 0.22,
+      span: 1,
+      w: 3,
+      face,
+    };
   }
 
   function difficultyTypesForWave(w) {
@@ -631,6 +774,7 @@
       input: { x: 0, y: 0 },
       facing: 1,
       _animT: 0,
+      meleeFx: null,
     };
   }
 
@@ -918,7 +1062,8 @@
     const w = weaponById(pl.weaponId);
     const spd = w.v || 400;
     const { raw, crit } = rollDamage(pl, w);
-    run.projs.push({
+    const pfx = opts.pfx || projPfxForWeapon(w, opts.pfxVar != null ? opts.pfxVar : 0);
+    const row = {
       x: pl.x,
       y: pl.y,
       vx: Math.cos(ang + spread) * spd,
@@ -930,7 +1075,10 @@
       ex: w.explode || 0,
       slow: w.slow || 0,
       slowAmt: w.slowAmt || 0,
-    });
+      pfx,
+    };
+    if (opts.chain > 0) row.chainJumps = opts.chain;
+    run.projs.push(row);
   }
 
   function fireGun(pl) {
@@ -941,7 +1089,7 @@
 
     if (w.burst) {
       for (let b = 0; b < (w.burst || 3); b++) {
-        shootProjectile(pl, ang + (b - 1) * 0.04, 0, {});
+        shootProjectile(pl, ang + (b - 1) * 0.04, 0, { pfxVar: b });
       }
       return;
     }
@@ -950,7 +1098,7 @@
       const spr = w.spread || 0.4;
       for (let i = 0; i < n; i++) {
         const t = -spr * 0.5 + (spr * i) / (n - 1 || 1);
-        shootProjectile(pl, ang, t, {});
+        shootProjectile(pl, ang, t, { pfxVar: i });
       }
       return;
     }
@@ -964,8 +1112,8 @@
         .sort((a, b) => dist(pl.x, pl.y, a.x, a.y) - dist(pl.x, pl.y, b.x, b.y));
       const t1 = others[0],
         t2 = others[1];
-      if (t1) shootProjectile(pl, Math.atan2(t1.y - pl.y, t1.x - pl.x), 0, {});
-      if (t2) shootProjectile(pl, Math.atan2(t2.y - pl.y, t2.x - pl.x), 0, {});
+      if (t1) shootProjectile(pl, Math.atan2(t1.y - pl.y, t1.x - pl.x), 0, { pfxVar: 0 });
+      if (t2) shootProjectile(pl, Math.atan2(t2.y - pl.y, t2.x - pl.x), 0, { pfxVar: 1 });
       return;
     }
     shootProjectile(pl, ang, 0, {});
@@ -977,6 +1125,19 @@
     if (!tgt) return;
     const { raw, crit } = rollDamage(pl, w);
     applyDamageToEnemy(tgt, raw, pl, crit);
+    if (w.beam) {
+      if (!run.beamBursts) run.beamBursts = [];
+      run.beamBursts.push({
+        x0: pl.x,
+        y0: pl.y,
+        x1: tgt.x,
+        y1: tgt.y,
+        t: 0.125,
+        maxT: 0.125,
+        col: '#ff00cc',
+        core: '#ffffff',
+      });
+    }
     if (tgt.hp <= 0) killEnemy(tgt, pl);
   }
 
@@ -1034,7 +1195,7 @@
     for (const e of run.enemies) hit(e);
     if (run.boss) hit(run.boss);
     if (run.bossTwin) hit(run.bossTwin);
-    run.flashRing = 0.12;
+    meleeFxStart(pl, w);
   }
 
   function tickWeapon(pl, dt) {
@@ -1060,6 +1221,60 @@
       }
       meleeSwing(pl);
       pl.cd = 1 / (w.rate * rmul);
+    }
+  }
+
+  function findChainLightningTarget(x, y, excludeIds, maxR) {
+    let best = null,
+      bd = 1e9;
+    for (const o of run.enemies) {
+      if (!o || o.hp <= 0 || excludeIds.has(o.id)) continue;
+      const d = dist(x, y, o.x, o.y);
+      if (d <= maxR && d < bd) {
+        bd = d;
+        best = o;
+      }
+    }
+    const tryBoss = (bx) => {
+      if (!bx || bx.hp <= 0 || excludeIds.has(bx.id) || bx.immuneT > 0) return;
+      const d = dist(x, y, bx.x, bx.y);
+      if (d <= maxR && d < bd) {
+        bd = d;
+        best = bx;
+      }
+    };
+    tryBoss(run.boss);
+    tryBoss(run.bossTwin);
+    return best;
+  }
+
+  function runChainLightning(pr, originEnt, owner) {
+    const n = pr.chainJumps | 0;
+    if (n <= 0 || !owner || !originEnt) return;
+    const hitIds = new Set([originEnt.id]);
+    let cx = originEnt.x,
+      cy = originEnt.y;
+    for (let hop = 0; hop < n; hop++) {
+      const t = findChainLightningTarget(cx, cy, hitIds, CHAIN_LINK_RANGE);
+      if (!t) break;
+      const mult = Math.pow(CHAIN_DMG_PER_HOP, hop + 1);
+      applyDamageToEnemy(t, pr.dmg * mult, owner, false);
+      if (pr.slow && !(t.boss && t.bi === 9 && t.phase > 0)) t.slowT = pr.slow;
+      if (!run.beamBursts) run.beamBursts = [];
+      run.beamBursts.push({
+        x0: cx,
+        y0: cy,
+        x1: t.x,
+        y1: t.y,
+        t: 0.085,
+        maxT: 0.085,
+        col: '#66aaff',
+        core: '#e8f4ff',
+      });
+      hitIds.add(t.id);
+      cx = t.x;
+      cy = t.y;
+      if (t.hp <= 0) killEnemy(t, owner);
     }
   }
 
@@ -1089,6 +1304,7 @@
       }
     }
     if (pr.slow) e.slowT = pr.slow;
+    runChainLightning(pr, e, owner);
     if (e.hp <= 0) killEnemy(e, owner);
     if (pr.pierce > 0) {
       pr.pierce--;
@@ -1108,6 +1324,7 @@
       const pr = run.projs[i];
       pr.x += pr.vx * dt;
       pr.y += pr.vy * dt;
+      if (pr.own !== 'enemy') pr._age = (pr._age || 0) + dt;
       if (pr.x < 0 || pr.y < 0 || pr.x > arena.w || pr.y > arena.h) {
         run.projs.splice(i, 1);
         continue;
@@ -1138,6 +1355,7 @@
             const o = run.players.find((p) => p.id === pr.own);
             applyDamageToEnemy(bx, pr.dmg, o, pr.crit);
             if (pr.slow && !(bx.bi === 9 && bx.phase > 0)) bx.slowT = pr.slow;
+            runChainLightning(pr, bx, o);
             if (bx.hp <= 0) killEnemy(bx, o);
           }
           const ix = run.projs.indexOf(pr);
@@ -1305,6 +1523,10 @@
           /* dead */
         }
         continue;
+      }
+      if (pl.meleeFx && pl.meleeFx.t > 0) {
+        pl.meleeFx.t -= dt;
+        if (pl.meleeFx.t <= 0) pl.meleeFx = null;
       }
       const m = pl.input;
       const spd = pl.speed * pl.spdMult;
@@ -1566,13 +1788,17 @@
             phase: run.bossTwin.phase || 0,
           }
         : null,
-      projs: run.projs.map((pr) => ({
-        x: pr.x,
-        y: pr.y,
-        vx: pr.vx,
-        vy: pr.vy,
-        own: pr.own,
-      })),
+      projs: run.projs.map((pr) => {
+        const o = {
+          x: pr.x,
+          y: pr.y,
+          vx: pr.vx,
+          vy: pr.vy,
+          own: pr.own,
+        };
+        if (pr.own !== 'enemy' && pr.pfx) o.pfx = pr.pfx;
+        return o;
+      }),
     };
   }
 
@@ -1705,19 +1931,27 @@
       showBossUi(false);
     }
     if (m.projs) {
-      run.projs = m.projs.map((pr) => ({
-        x: pr.x,
-        y: pr.y,
-        vx: pr.vx,
-        vy: pr.vy,
-        own: pr.own,
-        dmg: 10,
-        pierce: 0,
-        crit: false,
-        ex: 0,
-        slow: 0,
-        slowAmt: 0,
-      }));
+      run.projs = m.projs.map((pr) => {
+        const row = {
+          x: pr.x,
+          y: pr.y,
+          vx: pr.vx,
+          vy: pr.vy,
+          own: pr.own,
+          dmg: 10,
+          pierce: 0,
+          crit: false,
+          ex: 0,
+          slow: 0,
+          slowAmt: 0,
+        };
+        if (pr.pfx) row.pfx = pr.pfx;
+        else if (pr.own !== 'enemy') {
+          const ow = run.players.find((p) => p.id === pr.own);
+          if (ow) row.pfx = projPfxForWeapon(weaponById(ow.weaponId), 0);
+        }
+        return row;
+      });
     }
     if (m.wave != null) run.wave = m.wave;
   }
@@ -1740,7 +1974,12 @@
     }
     run.shake = Math.max(0, run.shake - dt);
     run.dmgFlash = Math.max(0, run.dmgFlash - dt);
-    run.flashRing = Math.max(0, run.flashRing - dt);
+    if (run.beamBursts && run.beamBursts.length) {
+      run.beamBursts = run.beamBursts.filter((b) => {
+        b.t -= dt;
+        return b.t > 0;
+      });
+    }
     for (const f of run.floats) {
       f.y -= 40 * dt;
       f.life -= dt;
@@ -1788,7 +2027,7 @@
       if (pl) run.upgradeDeckRaw = buildSerializedDeckForPlayer(pl);
     }
     $('btnUpgradeOk').disabled = false;
-    $('upgradeHint').textContent = 'Pick one stat. Gun: keep or swap.';
+    $('upgradeHint').textContent = 'Pick one stat. Weapon: keep or swap.';
     $('upgradeOverlay').classList.remove('hidden');
     buildUpgradeCardsFromDeck();
     let t = 30;
@@ -1812,7 +2051,7 @@
     run._guestUpgradeSent = false;
     run.phase = 'upgrade';
     $('btnUpgradeOk').disabled = false;
-    $('upgradeHint').textContent = 'Pick one stat. Gun: keep or swap.';
+    $('upgradeHint').textContent = 'Pick one stat. Weapon: keep or swap.';
     $('upgradeOverlay').classList.remove('hidden');
     buildUpgradeCardsFromDeck();
     let t = 30;
@@ -1863,20 +2102,21 @@
       });
     }
     const cur = pl.weaponId;
+    const curW = weaponById(cur);
     let wPool = WEAPONS.filter((x) => x.id !== cur);
     if (!wPool.length) wPool = WEAPONS.slice();
     const w = pick(wPool);
     const keepCard = {
       kind: 'keep',
       weaponId: cur,
-      name: 'KEEP GUN',
-      desc: 'No weapon change',
+      name: 'KEEP · ' + curW.name,
+      desc: weaponEffectDesc(curW),
     };
     const weaponCard = {
       kind: 'wpn',
       weaponId: w.id,
       name: w.name,
-      desc: (w.kind === 'gun' ? 'GUN' : 'MELEE') + ' · ' + w.trait,
+      desc: weaponEffectDesc(w),
     };
     return shuffleInPlace([keepCard, weaponCard, ...stats]);
   }
@@ -1887,19 +2127,21 @@
       .map((c) => {
         if (!c || !c.kind) return null;
         if (c.kind === 'keep') {
+          const ww = weaponById(c.weaponId);
           return {
             kind: 'keep',
-            name: c.name || 'KEEP GUN',
-            desc: c.desc || 'No weapon change',
+            name: c.name || 'KEEP · ' + ww.name,
+            desc: weaponEffectDesc(ww),
             weaponId: c.weaponId,
             apply() {},
           };
         }
         if (c.kind === 'wpn') {
+          const ww = weaponById(c.weaponId);
           return {
             kind: 'wpn',
-            name: c.name,
-            desc: c.desc,
+            name: ww.name,
+            desc: weaponEffectDesc(ww),
             weaponId: c.weaponId,
             apply(p) {
               p.weaponId = c.weaponId;
@@ -1963,7 +2205,7 @@
           ? 'swapping'
           : 'keeping';
     $('upgradeHint').textContent =
-      (st !== undefined ? 'Stat OK' : 'Tap a stat') + ' · Gun: ' + gunLbl;
+      (st !== undefined ? 'Stat OK' : 'Tap a stat') + ' · Weapon: ' + gunLbl;
   }
 
   function toggleUpgradeCard(i) {
@@ -2592,6 +2834,357 @@
     ctx.restore();
   }
 
+  function drawBeamBursts() {
+    if (!run.beamBursts || !run.beamBursts.length) return;
+    const tSec = performance.now() * 0.001;
+    for (const b of run.beamBursts) {
+      const k = b.t / b.maxT;
+      const grow = easeInOutCubic(Math.min(1, (1 - k) * 3.8));
+      const ux = b.x1 - b.x0;
+      const uy = b.y1 - b.y0;
+      const x1 = b.x0 + ux * grow;
+      const y1 = b.y0 + uy * grow;
+      const ripple = 0.9 + 0.1 * Math.sin(tSec * 32 + grow * 5);
+      const fade = smoothstep(0, 0.22, k) * Math.pow(Math.max(0.02, k), 0.42);
+      const alpha = fade * ripple * (0.32 + 0.5 * grow);
+      ctx.save();
+      ctx.lineCap = 'round';
+      const g = ctx.createLinearGradient(b.x0, b.y0, x1, y1);
+      g.addColorStop(0, 'rgba(255,0,204,0)');
+      g.addColorStop(0.28, b.col);
+      g.addColorStop(0.72, b.col);
+      g.addColorStop(1, b.core || '#ffffff');
+      ctx.globalAlpha = Math.min(0.88, alpha * 0.95);
+      ctx.strokeStyle = g;
+      ctx.shadowBlur = 12 + 16 * grow * k;
+      ctx.shadowColor = b.col;
+      ctx.lineWidth = 3 + 5 * grow;
+      ctx.beginPath();
+      ctx.moveTo(b.x0, b.y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.globalAlpha = Math.min(0.95, alpha * 1.1);
+      const g2 = ctx.createLinearGradient(b.x0, b.y0, x1, y1);
+      g2.addColorStop(0, 'rgba(255,255,255,0)');
+      g2.addColorStop(0.5, 'rgba(255,255,255,0.65)');
+      g2.addColorStop(1, b.core || '#fff');
+      ctx.strokeStyle = g2;
+      ctx.shadowBlur = 3 + 8 * k;
+      ctx.lineWidth = 1.2 + 1.6 * grow;
+      ctx.beginPath();
+      ctx.moveTo(b.x0, b.y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawProjectile(pr) {
+    const pfx =
+      pr.pfx ||
+      (pr.own === 'enemy'
+        ? { shape: 'square', col: COL.proj, glow: COL.proj, sz: 3, spin: false }
+        : projPfxForWeapon(weaponById(run.players.find((p) => p.id === pr.own)?.weaponId || 'G1'), 0));
+    const ang = Math.atan2(pr.vy, pr.vx);
+    let s = pfx.sz || 3;
+    const shape = pfx.shape || 'square';
+    const ag = pr._age || 0;
+    const friendly = pr.own !== 'enemy';
+    if (friendly) {
+      const spd = Math.hypot(pr.vx, pr.vy) || 400;
+      const trailMax = Math.min(32, spd * 0.055 + 10);
+      for (let j = 5; j >= 1; j--) {
+        const f = j / 6;
+        const len = trailMax * f * 0.5;
+        const tx = pr.x - Math.cos(ang) * len;
+        const ty = pr.y - Math.sin(ang) * len;
+        const tw = smoothstep(0, 0.06, ag) * f;
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.globalAlpha = (0.06 + 0.08 * f) * tw * (0.88 + 0.12 * Math.sin(ag * 11 + j * 0.8));
+        ctx.fillStyle = pfx.glow || pfx.col;
+        ctx.shadowBlur = 10 * f;
+        ctx.shadowColor = pfx.glow || pfx.col;
+        ctx.beginPath();
+        ctx.arc(0, 0, s * (0.32 + 0.28 * f), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    ctx.save();
+    ctx.translate(pr.x, pr.y);
+    if (friendly) {
+      const breathe = 1 + 0.07 * Math.sin(ag * 12);
+      s *= breathe;
+      const spawnBlend = smoothstep(0, 0.045, ag);
+      const twinkle = 0.78 + 0.22 * Math.sin(ag * 7.2 + 0.4);
+      ctx.globalAlpha = spawnBlend * twinkle;
+    }
+    const noRot = shape === 'orb' || shape === 'ring' || shape === 'pellet';
+    if (!noRot) ctx.rotate(ang);
+    ctx.shadowBlur = 8 + 8 * (friendly ? 1 + 0.12 * Math.sin(ag * 17) : 0);
+    ctx.shadowColor = pfx.glow || pfx.col;
+    if (shape === 'square') {
+      ctx.fillStyle = pfx.col;
+      ctx.fillRect(-s, -s, s * 2, s * 2);
+    } else if (shape === 'pellet') {
+      ctx.fillStyle = pfx.col;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (shape === 'bolt') {
+      ctx.fillStyle = pfx.col;
+      ctx.fillRect(-s * 2.2, -s * 0.45, s * 4.4, s * 0.9);
+    } else if (shape === 'diamond') {
+      ctx.fillStyle = pfx.col;
+      ctx.rotate(Math.PI / 4);
+      ctx.fillRect(-s * 0.9, -s * 0.9, s * 1.8, s * 1.8);
+    } else if (shape === 'capsule') {
+      ctx.fillStyle = pfx.col;
+      ctx.fillRect(-s * 1.8, -s * 0.5, s * 3.6, s);
+      const prevA = ctx.globalAlpha;
+      ctx.fillStyle = pfx.col2 || '#fff';
+      ctx.globalAlpha = prevA * 0.52;
+      ctx.fillRect(-s * 0.8, -s * 0.35, s * 1.2, s * 0.7);
+      ctx.globalAlpha = prevA;
+    } else if (shape === 'orb') {
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 1.4);
+      g.addColorStop(0, pfx.col2 || '#ffffff');
+      g.addColorStop(0.45, pfx.col);
+      g.addColorStop(1, 'rgba(255,200,50,0.15)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (shape === 'ring') {
+      ctx.strokeStyle = pfx.col;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, s, 0, Math.PI * 2);
+      ctx.stroke();
+      const prevR = ctx.globalAlpha;
+      ctx.fillStyle = pfx.glow;
+      ctx.globalAlpha = prevR * 0.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, s * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = prevR;
+    } else if (shape === 'zig') {
+      ctx.strokeStyle = pfx.col;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-s * 2, 0);
+      ctx.lineTo(-s, -s);
+      ctx.lineTo(0, s * 0.5);
+      ctx.lineTo(s, -s * 0.6);
+      ctx.lineTo(s * 2.2, 0);
+      ctx.stroke();
+    } else if (shape === 'twin') {
+      const ph = (pfx.twinPhase | 0) * 2.6;
+      ctx.fillStyle = pfx.col;
+      ctx.fillRect(-s + ph, -s * 0.55, s * 1.6, s * 1.1);
+      ctx.fillRect(-s - ph, -s * 0.55, s * 1.6, s * 1.1);
+    } else {
+      ctx.fillStyle = pfx.col;
+      ctx.fillRect(-s, -s, s * 2, s * 2);
+    }
+    ctx.restore();
+  }
+
+  function drawMeleeFxForPlayer(pl) {
+    const fx = pl.meleeFx;
+    if (!fx || fx.t <= 0) return;
+    const life = fx.t / fx.maxT;
+    const phase = 1 - life;
+    const strike = easeInOutCubic(Math.min(1, phase * 3.25));
+    const open = smoothstep(0.02, 1, strike);
+    const swell = Math.sin(phase * Math.PI);
+    const fade = smoothstep(0.1, 1, life) * Math.pow(Math.max(0.001, life), 0.34);
+    const alpha = fade * (0.14 + 0.86 * open);
+    const tSec = performance.now() * 0.001;
+    const spanFull = fx.span != null ? fx.span : 1.05;
+    const spanEff = spanFull * (0.03 + 0.97 * open);
+    const rPulse = fx.r * (1 + 0.085 * swell + 0.02 * Math.sin(tSec * 18 + phase * 5));
+    const base0 = fx.face > 0 ? 0 : Math.PI;
+    const sway =
+      (fx.style === 'arc' ||
+        fx.style === 'fan' ||
+        fx.style === 'wedge' ||
+        fx.style === 'phantom' ||
+        fx.style === 'hammer'
+        ? 1
+        : 0) *
+      0.04 *
+      swell *
+      Math.sin(tSec * 19 + phase * 7);
+    const base = base0 + sway;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (fx.style === 'arc') {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = (fx.w || 4) * (0.82 + 0.18 * open);
+      ctx.shadowBlur = 10 + 14 * open;
+      ctx.shadowColor = fx.col2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse * (1.01 - 0.03 * (1 - life)), base - spanEff, base + spanEff);
+      ctx.stroke();
+      ctx.globalAlpha = alpha * 0.55 * open;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse * 1.04, base - spanEff * 0.92, base + spanEff * 0.92);
+      ctx.stroke();
+    } else if (fx.style === 'burst') {
+      const n = fx.rays || 8;
+      const len = fx.r * (0.18 + 0.82 * easeInOutCubic(Math.min(1, open * 1.02)));
+      ctx.strokeStyle = fx.col1;
+      ctx.shadowBlur = 8 + 10 * open;
+      ctx.shadowColor = fx.col2;
+      ctx.lineWidth = 1.6 + 0.8 * open;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + tSec * 2.2 * (1 - life) * open;
+        ctx.globalAlpha = alpha * (0.75 + 0.25 * Math.sin(i + tSec * 10));
+        ctx.beginPath();
+        ctx.moveTo(pl.x, pl.y);
+        ctx.lineTo(pl.x + Math.cos(a) * len, pl.y + Math.sin(a) * len);
+        ctx.stroke();
+      }
+    } else if (fx.style === 'fan') {
+      ctx.fillStyle = fx.col2;
+      ctx.globalAlpha = alpha * 0.4 * (0.5 + 0.5 * open);
+      ctx.beginPath();
+      ctx.moveTo(pl.x, pl.y);
+      ctx.arc(pl.x, pl.y, rPulse * 1.06, base - spanEff, base + spanEff);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 2.5 + 1.2 * open;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = fx.col2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse, base - spanEff, base + spanEff);
+      ctx.stroke();
+    } else if (fx.style === 'wedge') {
+      ctx.fillStyle = fx.col1;
+      ctx.globalAlpha = alpha * 0.45 * (0.55 + 0.45 * open);
+      ctx.beginPath();
+      ctx.moveTo(pl.x, pl.y);
+      ctx.arc(pl.x, pl.y, rPulse, base - spanEff, base + spanEff);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col2;
+      ctx.lineWidth = 3.5 + 1.2 * open;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse, base - spanEff, base + spanEff);
+      ctx.stroke();
+    } else if (fx.style === 'hammer') {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 5 + 2 * open;
+      ctx.shadowBlur = 14 + 10 * swell;
+      ctx.shadowColor = fx.col2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse * 0.92, base - 0.55 * open, base + 0.55 * open);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = alpha * 0.65 * fade;
+      ctx.beginPath();
+      ctx.moveTo(pl.x - fx.r * open, pl.y + 8);
+      ctx.lineTo(pl.x + fx.r * open, pl.y + 8);
+      ctx.stroke();
+    } else if (fx.style === 'spin') {
+      const arms = fx.arms || 5;
+      const spin = tSec * 11 + phase * 4.5;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 1.8;
+      const reach = rPulse * (0.52 + 0.48 * easeInOutCubic(open));
+      for (let i = 0; i < arms; i++) {
+        const a = spin + (i / arms) * Math.PI * 2;
+        ctx.shadowColor = fx.col2;
+        ctx.shadowBlur = 6 + 6 * open;
+        ctx.globalAlpha = alpha * (0.85 + 0.15 * Math.sin(i * 1.7 + spin));
+        ctx.beginPath();
+        ctx.moveTo(pl.x, pl.y);
+        ctx.lineTo(pl.x + Math.cos(a) * reach, pl.y + Math.sin(a) * reach);
+        ctx.stroke();
+      }
+    } else if (fx.style === 'ice') {
+      ctx.strokeStyle = fx.col1;
+      ctx.shadowBlur = 10 + 8 * open;
+      ctx.shadowColor = fx.col2;
+      const reach = rPulse * (0.22 + 0.78 * easeInOutCubic(open));
+      for (let k = 0; k < 6; k++) {
+        const a = base + (k / 6) * spanEff * 2 - spanEff + Math.sin(tSec * 8 + k) * 0.04;
+        ctx.globalAlpha = alpha * (0.7 + 0.3 * (k / 6));
+        ctx.lineWidth = 1.4 + 0.6 * open;
+        ctx.beginPath();
+        ctx.moveTo(pl.x, pl.y);
+        ctx.lineTo(pl.x + Math.cos(a) * reach, pl.y + Math.sin(a) * reach);
+        ctx.stroke();
+      }
+    } else if (fx.style === 'aura') {
+      const wob = Math.sin(tSec * 22);
+      const pulse = 0.86 + 0.14 * wob;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 2.5 + 1.2 * swell;
+      ctx.globalAlpha = alpha * 0.5 * (0.75 + 0.25 * open);
+      ctx.shadowBlur = 14 + 10 * pulse;
+      ctx.shadowColor = fx.col2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, fx.r * pulse * (0.96 + 0.06 * open), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = alpha * 0.32 * fade;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, fx.r * 0.74 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = alpha * 0.22 * fade * open;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, fx.r * 1.12 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (fx.style === 'pull') {
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 1.5;
+      for (let k = 0; k < 4; k++) {
+        const prog = easeInCubic(Math.min(1, open * 1.2 - k * 0.12));
+        const r0 = fx.r * (0.28 + k * 0.22) * prog;
+        if (r0 < 2) continue;
+        ctx.globalAlpha = alpha * (0.55 - k * 0.1) * fade;
+        ctx.beginPath();
+        ctx.arc(pl.x, pl.y, r0, base + 0.25, base + Math.PI * 1.15);
+        ctx.stroke();
+      }
+    } else if (fx.style === 'phantom') {
+      const lag = 1 - easeOutCubic(open);
+      ctx.globalAlpha = alpha * 0.4 * (0.35 + 0.65 * open);
+      ctx.strokeStyle = fx.col2;
+      ctx.lineWidth = 4 + 2 * lag;
+      ctx.beginPath();
+      ctx.arc(pl.x - 6 * fx.face * (0.4 + 0.6 * open), pl.y, rPulse * 0.95, base - spanEff * 0.9, base + spanEff * 0.9);
+      ctx.stroke();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col1;
+      ctx.lineWidth = 2.5 + 1 * open;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = fx.col2;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse, base - spanEff, base + spanEff);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = fx.col1 || '#00f0ff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(pl.x, pl.y, rPulse, base - spanEff, base + spanEff);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   function render() {
     if (!run) return;
     resize();
@@ -2620,13 +3213,9 @@
     if (run.bossTwin) {
       drawBossSprite(run.bossTwin);
     }
+    drawBeamBursts();
     for (const pr of run.projs) {
-      ctx.save();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = COL.proj;
-      ctx.fillStyle = COL.proj;
-      ctx.fillRect(pr.x - 3, pr.y - 3, 6, 6);
-      ctx.restore();
+      drawProjectile(pr);
     }
     for (const pl of run.players) {
       drawPlayerSprite(pl);
@@ -2641,16 +3230,8 @@
         ctx.restore();
       }
     }
-    if (run.flashRing > 0) {
-      const pl = run.players[run.localIdx];
-      const w = weaponById(pl.weaponId);
-      ctx.save();
-      ctx.strokeStyle = '#00f0ff';
-      ctx.globalAlpha = 0.35;
-      ctx.beginPath();
-      ctx.arc(pl.x, pl.y, w.r || 60, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+    for (const pl of run.players) {
+      if (!pl.down && pl.meleeFx) drawMeleeFxForPlayer(pl);
     }
     for (const f of run.floats) {
       ctx.save();
@@ -2743,7 +3324,7 @@
       killMap: {},
       shake: 0,
       dmgFlash: 0,
-      flashRing: 0,
+      beamBursts: [],
     };
     run.coopFast = opts.coop && run.pCount > 1;
     const cx = arena.w * 0.5,
@@ -2900,6 +3481,7 @@
     const panel = $('customAdvPanel');
     if (chk) chk.checked = false;
     if (panel) panel.classList.add('hidden');
+    refreshCustomWeaponDesc();
   };
   $('btnCustomBack').onclick = () => {
     show('customRun', false);
@@ -3141,23 +3723,58 @@
   function fillCustomWeaponSelect() {
     const sel = $('selCustomWeapon');
     if (!sel || !WEAPONS.length) return;
+    const esc = (s) =>
+      String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;');
     let h = '<optgroup label="Guns">';
     for (const w of WEAPONS) {
-      if (w.kind === 'gun') h += '<option value="' + w.id + '">' + w.id + ' — ' + w.name + '</option>';
+      if (w.kind === 'gun')
+        h +=
+          '<option value="' +
+          w.id +
+          '" title="' +
+          esc(weaponEffectDesc(w)) +
+          '">' +
+          w.id +
+          ' — ' +
+          w.name +
+          '</option>';
     }
     h += '</optgroup><optgroup label="Melee">';
     for (const w of WEAPONS) {
-      if (w.kind === 'mel') h += '<option value="' + w.id + '">' + w.id + ' — ' + w.name + '</option>';
+      if (w.kind === 'mel')
+        h +=
+          '<option value="' +
+          w.id +
+          '" title="' +
+          esc(weaponEffectDesc(w)) +
+          '">' +
+          w.id +
+          ' — ' +
+          w.name +
+          '</option>';
     }
     h += '</optgroup>';
     sel.innerHTML = h;
     sel.value = 'G1';
+    refreshCustomWeaponDesc();
+  }
+
+  function refreshCustomWeaponDesc() {
+    const sel = $('selCustomWeapon');
+    const el = $('customWeaponDesc');
+    if (!sel || !el) return;
+    el.textContent = weaponEffectDesc(weaponById(sel.value));
   }
 
   canvas = $('cv');
   ctx = canvas.getContext('2d');
   fillStartLevelSelects();
   fillCustomWeaponSelect();
+  const cwSel = $('selCustomWeapon');
+  if (cwSel) cwSel.addEventListener('change', refreshCustomWeaponDesc);
   const hsl = $('selHostStartLevel');
   if (hsl) {
     hsl.addEventListener('change', () => {

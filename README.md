@@ -218,7 +218,7 @@ Final Damage = WeaponBaseDamage × PlayerDamageStat × (2 if crit, else 1) − E
 | G4 | LASER BEAM | 6/tick | Continuous | — | Hitscan beam to nearest enemy |
 | G5 | SCATTER SHOT | 10 | 1.0/s | 450px/s | Fires 5 projectiles in a cone |
 | G6 | VOLT CANNON | 35 | 0.4/s | 300px/s | Slow fire, massive single-target burst |
-| G7 | CHAIN ZAP | 15 | 1.2/s | 380px/s | Chains to 2 additional nearby enemies |
+| G7 | CHAIN ZAP | 15 | 1.2/s | 380px/s | After first hit, chains to up to 2 more enemies within **118px** of the previous target (each hop **×0.88** damage); shows light zap segments |
 | G8 | NOVA SHELL | 20 | 0.6/s | 280px/s | Explodes on impact, 60px AoE |
 | G9 | PHANTOM DART | 18 | 1.0/s | 600px/s | Applies 2s slow (−40% speed) on hit |
 | G10 | TWIN BLASTER | 9 | 2.0/s | 420px/s | Fires simultaneously at 2 nearest enemies |
