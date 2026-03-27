@@ -1,7 +1,7 @@
 # NEON SURGE — Master Design & Infrastructure Document
-**Version:** 1.0 (compiled)  
+**Version:** 1.1 (compiled)  
 **Status:** Draft  
-**Last Updated:** March 2026  
+**Last Updated:** March 2026 — Custom Run (start level + weapon + optional stat modifiers), README synced to `index.html`  
 **Sources:** PRD v1.2 + Infrastructure Guide v1.0
 
 ---
@@ -23,7 +23,7 @@
 ## 1. Product Overview
 
 ### 1.1 Summary
-NEON SURGE is a mobile-first roguelike survival arcade game playable entirely in the browser. Players control a character with a right-hand virtual joystick. Weapons attack automatically based on player stats. Each wave of enemies grows harder via a scaling multiplier, and every wave culminates in a boss encounter. Between waves, players choose upgrades that define their run's build. Up to 4 players can join the same session online via a room code — and the more players join, the harder the game gets.
+NEON SURGE is a mobile-first roguelike survival arcade game playable entirely in the browser. Players control a character with a right-hand virtual joystick. Weapons attack automatically based on player stats. **Solo Run** starts at wave 1 with the default starting gun. **Custom Run** (solo only) opens a separate screen: pick **start level 1–10**, pick **any starting weapon** (full gun and melee list), and optionally enable **Advanced settings** to enter **manual player stat modifiers** applied after the system’s level-based bonuses. If Advanced is off, stats come only from the chosen start level (same baseline bonuses as below). In **co-op**, only the **host** sets start level in the lobby; starting weapon and custom stat modifiers are not synced over the network in v1 (all co-op players use default loadout unless extended later). Each wave of enemies grows harder via a scaling multiplier, and culminates in a boss encounter. Between waves, players choose upgrades that define their run's build. Up to 4 players can join the same session online via a room code — and the more players join, the harder the game gets.
 
 ### 1.2 Design Pillars
 - **Effortless to pick up.** Right thumb on joystick. Everything else is automatic.
@@ -154,11 +154,26 @@ Neon arcade, 8-bit pixel art. Think CRT screen in a dark arcade room. Every elem
 
 ## 5. Player
 
+### 5.0 Start level, Custom Run, and stat order
+- **Solo Run:** From the main menu, starts at **wave 1**, **default weapon** (`G1`), no manual stat tweaks. After **Play Again**, the run repeats the last session’s Custom Run options if the previous run used Custom Run; otherwise it matches this default.
+- **Custom Run:** Button on the main menu opens a dedicated flow. Choose **start level / first wave 1–10**, **starting weapon** (any entry from the weapon table, guns and melee grouped in the dropdown). **Advanced settings** (off by default): when enabled, number fields adjust **multipliers and adds** on top of stats that already include level bonuses. When disabled, **only** the system applies stats from the chosen level — no extra modifiers.
+- **Order of operations** when a run starts: (1) create base player stats, (2) set starting `weaponId` if specified, (3) **`applyStartLevelBonuses`** for wave `L`, (4) if Custom Run has Advanced on, **`applyCustomStatMods`** (per-field: max HP, damage mult, speed mult, rate mult, range mult, XP mult as multipliers; armor as flat add; crit as add to chance).
+- **Co-op:** Only the **host** sets start level in the lobby (guests see a note in the difficulty preview). The value is sent in the `GAME_START` message as `startWave`. Custom weapon and advanced stat modifiers are a **solo Custom Run** feature only in the current build (host/guest co-op does not transmit them).
+- **Baseline bonuses** (system, applied once per player after base stats are created, only if `L > 1`). Let `s = L − 1`:
+  - Max HP × `(1 + 0.10 × s)`
+  - Damage multiplier × `(1 + 0.05 × s)`
+  - Attack rate multiplier × `(1 + 0.04 × s)`
+  - Move speed multiplier × `(1 + 0.022 × s)`
+  - Flat armor + `floor(1.8 × s)`
+  - Crit chance + `0.006 × s`
+  - XP multiplier × `(1 + 0.03 × s)`
+- **Level 9 vs level 3:** different `s` gives meaningfully different starting power, so jumping in at a higher wave is offset by stronger base stats.
+
 ### 5.1 Base Stats
 
 | Stat | Description | Base Value |
 |---|---|---|
-| `maxHP` | Total health points | 100 |
+| `maxHP` | Total health points | 165 |
 | `speed` | Movement pixels/sec | 180 |
 | `damage` | Base damage per attack (modified by weapon) | 10 |
 | `attackRate` | Attacks per second | 1.0 |
@@ -229,9 +244,11 @@ Final Damage = WeaponBaseDamage × PlayerDamageStat × (2 if crit, else 1) − E
 
 ### 7.1 Stat Scaling
 ```
-Enemy Stat = BaseStat × totalDifficulty(wave, players)
+Enemy HP  ≈ BaseHP × totalDifficulty × 0.72  (and similar for speed/armor)
+Enemy Dmg ≈ BaseDmg × totalDifficulty × 0.54
 ```
-See Section 9 for the full `totalDifficulty` formula.
+Enemy movement speed uses a slightly different coefficient (capped). See Section 9 for `totalDifficulty`.  
+**Bomber** self-destruct AoE to players is **32** damage (not scaled by the enemy damage row).
 
 ### 7.2 Enemy Catalog (10 types)
 
@@ -258,7 +275,8 @@ Enemies target the **nearest living player**. Players can split aggro. Downed pl
 - Wave 4: + E5, E6
 - Wave 5: + E7, E8 (first boss wave)
 - Wave 6+: + E9, E10; all types active
-- Spawn count per wave: `10 × (1 + 0.3 × waveNumber)`
+- **Spawn count per wave:** `ceil(6.5 × (1 + 0.2 × waveNumber))` — fewer simultaneous enemies than earlier designs.
+- **Spawn pacing:** one enemy enters the arena roughly every **0.26s** of accumulated spawn budget (versus faster bursts in older builds), so waves feel **less crowded**.
 
 ---
 
@@ -270,17 +288,16 @@ Enemies target the **nearest living player**. Players can split aggro. Downed pl
 ```
 
 ### 8.2 Wave Difficulty & Time Budget
+Implementation uses a gentler exponent (matches `index.html`):
 ```
-waveDifficulty(n) = 1.35 ^ (n − 1)
-
-Wave 1:   1.00×   (learning wave)
-Wave 3:   1.82×   (ramps up fast)
-Wave 5:   3.32×   (first real pressure)
-Wave 7:   6.05×   (designed kill zone — most runs end here)
-Wave 9:  11.03×   (exceptional players only)
-Wave 10: 14.89×   (near-impossible without a perfect build)
+waveDifficulty(n) = 1.12 ^ (n − 1)
+totalDifficulty(wave, players) = waveDifficulty(wave) × playerMult(players)
 ```
-**Time budget:** ~60s combat + ~15s upgrade screen = ~75s/wave. A typical run dying at Wave 7–8 = **~10 minutes**.
+Illustrative solo multipliers:
+```
+Wave 1:  1.00×    Wave 5:  1.57×    Wave 9:  2.47×    Wave 10: 2.77×
+```
+**Time budget:** ~60s combat + ~15s upgrade screen ≈ **75s/wave** (varies). With easier pacing and start-level bonuses, runs can push further without old “kill zone at wave 7” severity.
 
 ### 8.3 Boss Spawn Trigger
 - Boss spawns when 85% of regular enemies in the wave are dead
@@ -307,31 +324,36 @@ playerMult(p) = 1 + 0.25 × (p − 1)
 ```
 
 ### 9.2 Combined Difficulty Formula
+Uses `waveDifficulty(n) = 1.12^(n−1)` (see §8.2).
 ```
 totalDifficulty(wave, players) = waveDifficulty(wave) × playerMult(players)
 
               1P      2P      3P      4P
 Wave 1:      1.00    1.25    1.50    1.75
-Wave 3:      1.82    2.28    2.73    3.19
-Wave 5:      3.32    4.15    4.98    5.81
-Wave 7:      6.05    7.57    9.08   10.59   ← designed kill zone
-Wave 9:     11.03   13.79   16.55   19.31
-Wave 10:    14.89   18.62   22.34   26.06   ← near-impossible
+Wave 3:      1.25    1.57    1.88    2.20
+Wave 5:      1.57    1.97    2.36    2.75
+Wave 7:      1.97    2.47    2.96    3.45
+Wave 9:      2.48    3.10    3.71    4.33
+Wave 10:     2.77    3.47    4.16    4.85
 ```
+(Values rounded to two decimals.)
 
 ### 9.3 What Scales
-- Enemy max HP, contact damage, movement speed (hard cap: base × 2.0), armor
-- Boss HP, damage, armor, ability cooldowns
+- Enemy max HP, contact damage (see §7.1 coefficients), movement speed (capped vs base), armor
+- Boss HP, damage, armor
+- Regular **enemy spawn count** grows with wave number (§7.4)
 
 ### 9.4 What Does NOT Scale
-- Enemy count per wave · Boss physical size · Player base stats
+- Boss physical size · Joystick layout · Arena rules  
+- **Player base stats** do not scale with wave *during* a run, but **start level** (§5.0) sets initial wave and applies one-time baseline bonuses
 
 ### 9.5 Lobby Difficulty Preview
+Shows `totalDifficulty` for wave 1 and wave 7, player count, and (for host) the selected **start wave**. Wording in the shipped client may say e.g. “CO-OP SCALING STILL HURTS” instead of a static legacy string.
 ```
 PLAYERS: 3 / 4
+START WAVE: 1 (host)
 WAVE 1 DIFFICULTY:   1.50×
-WAVE 7 DIFFICULTY:   9.08×
-⚠ THIS IS GOING TO HURT
+WAVE 7 DIFFICULTY:   2.47×
 ```
 
 ---
@@ -369,10 +391,10 @@ Boss AbilityCooldown = BaseCooldown × (0.85 ^ (wave − firstAppearance))
 
 | # | Name | Visual | Base HP | Unique Mechanic |
 |---|---|---|---|---|
-| B1 | ALPHA DRONE | Large magenta square, rotating outer ring | 200 | Every 8s: summons 4 Crawlers. Below 50% HP: +30% speed. |
+| B1 | ALPHA DRONE | Large magenta square, rotating outer ring | 200 | Every 13s: summons 3 Crawlers. Below 50% HP: +30% speed. |
 | B2 | BLITZ KING | Elongated orange rect, trailing afterimage | 180 | Every 5s: charges across arena at 600px/s. Contact damage ×3 during charge. |
-| B3 | IRON COLOSSUS | Huge dark green square, steel overlay | 320 | Every 15s: 3s full damage immunity. Armor doubled permanently. |
-| B4 | SPLIT PRIME | Large cyan diamond | 240 | At 50% HP: splits into 2 copies (each 40% HP). Both must die. |
+| B3 | IRON COLOSSUS | Huge dark green square, steel overlay | 320 | Every 15s: 3s full damage immunity. Create an Earthquake damaging surounding 70px. Armor doubled permanently. |
+| B4 | SPLIT PRIME | Large cyan diamond | 240 | At 50% HP: splits into 2 copies (each 40% HP), movement speed +50%. Both must die. |
 | B5 | VOLT TYRANT | Large purple hexagon, arc effects | 220 | Every 3s: fires 8-directional projectile spread at full boss damage. |
 | B6 | PHASE WRAITH | Large white pulsing circle | 200 | Every 8s: 2s full invulnerability + teleports to random position. |
 | B7 | DOOM CARRIER | Giant yellow square, blinking red border | 260 | Spawns 1 Bomber every 6s. Below 30% HP: spawn rate doubles. |
@@ -385,14 +407,20 @@ Boss AbilityCooldown = BaseCooldown × (0.85 ^ (wave − firstAppearance))
 ## 11. Upgrade System
 
 ### 11.1 Structure
-After each wave, each player independently receives 3 upgrade cards. One is selected; the rest are discarded. Players choose simultaneously.
+After each wave, each player sees **five** upgrade cards: **KEEP GUN**, **one rolled weapon swap**, and **three random stat boosts**. Pick **one stat** (required) and **either** keep the current weapon **or** take the swap. Timer **30s** with auto-pick. Co-op uses relay messages (`WAVE_CLEAR`, `UPGRADE_CHOSEN`, `NEXT_WAVE`) so guests get the same flow as host.
 
-### 11.2 Stat Boosts (always available)
-- +20% Max HP + heal 20 HP · +15% Movement Speed · +25% Damage · +20% Attack Rate
-- +10 Armor (flat) · +10% Crit Chance · +30% Range (gun only) · +20% XP Multiplier
+### 11.2 Stat Boosts (rolled on stat cards; values as implemented)
+- **NANO PLATING:** +28% Max HP, heal 35  
+- **SPRINT CORE:** +18% Move Speed  
+- **OVERCLOCK:** +32% Damage  
+- **TURBO SERVOS:** +25% Attack Rate  
+- **BARRIER mesh:** +12 Armor  
+- **LUCK CHIP:** +12% Crit Chance  
+- **TARGETING AI:** +35% Gun Range  
+- **DATA LEAK:** +25% XP gain  
 
-### 11.3 Weapon Swap (always available)
-Replace current weapon with any of the 20 weapons. Gun ↔ melee swaps allowed.
+### 11.3 Weapon line
+Players can **keep** their weapon or take **one** offered alternate weapon on the same screen.
 
 ### 11.4 Passive Effects (unlocked from Wave 3)
 - **Lifesteal:** +3 HP per kill
@@ -404,10 +432,9 @@ Replace current weapon with any of the 20 weapons. Gun ↔ melee swaps allowed.
 - **Revive Boost (co-op only):** Revival time 3s → 1.5s; revived player restored to 60% HP
 
 ### 11.5 Upgrade Card UI
-- 3 cards horizontal, scrollable on small screens
-- Each card: name, description, icon, category tag
-- Tap → pulse → confirm button appears · 30s auto-select countdown
-- Co-op: indicator shows how many teammates have confirmed
+- Cards in a **wrap** grid; tap to toggle selection (mutually exclusive rules for stat vs weapon row)
+- Short hint line + **OK** to confirm · 30s auto-select countdown
+- Co-op: after confirm, **“Waiting for squad…”** until host applies everyone’s picks and sends **NEXT_WAVE**
 
 ---
 
@@ -472,7 +499,7 @@ Roll `Math.random() < critChance`. If true: damage ×2. Shown in red.
 
 | State | Description |
 |---|---|
-| `MENU` | Title screen — Solo Run / Co-op |
+| `MENU` | Title screen — Solo Run / Custom Run / Co-op |
 | `LOBBY` | Waiting room — room code, player list, difficulty preview |
 | `PLAYING` | Active gameplay loop |
 | `UPGRADE` | Between-wave selection screen |
@@ -482,7 +509,8 @@ Roll `Math.random() < critChance`. If true: damage ×2. Shown in red.
 ### 14.2 Lobby Flow
 ```
 MENU
- ├── SOLO RUN → Wave 1 immediately
+ ├── SOLO RUN → Wave 1, default weapon
+ ├── CUSTOM RUN → choose level + weapon (+ optional Advanced stat modifiers) → start
  └── CO-OP
        ├── CREATE ROOM → server returns 6-char code → host waits in lobby
        └── JOIN ROOM → enter code → join lobby
@@ -588,7 +616,7 @@ Guests:  Send joystick input → receive game state from host → render locally
 | `ROOM_CREATED` | Server → Client | `roomCode` (6-char) |
 | `JOIN_ROOM` | Client → Server | `roomCode`, `playerId`, `playerName` |
 | `PLAYER_JOINED` | Server → All in room | `playerList` |
-| `GAME_START` | Host → Server → All | `playerCount`, `seed` |
+| `GAME_START` | Host → Server → All | `playerCount`, `seed`, `startWave` (1–10, optional; default 1) |
 | `INPUT` | Client → Server → Host | `playerId`, `joystickVector`, `timestamp` |
 | `GAME_STATE` | Host → Server → All | player positions/HP, enemy positions, wave state |
 | `PLAYER_DOWN` | Host → All | `playerId`, `position` |

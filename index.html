@@ -310,6 +310,45 @@
       text-shadow: 0 0 16px #ff0080;
     }
     .error-txt { color: #ff4444; font-size: 8px; margin-top: 8px; text-align: center; }
+    .level-row {
+      margin: 18px 0;
+      font-size: 8px;
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+    }
+    .level-row label { color: #8ab; display: block; margin-bottom: 6px; }
+    select.level-select {
+      font-family: inherit;
+      font-size: 9px;
+      padding: 12px 10px;
+      width: 100%;
+      max-width: 280px;
+      background: #0d1f3c;
+      border: 2px solid #00f0ff;
+      color: #fff;
+      cursor: pointer;
+    }
+    #customRun .adv-grid {
+      max-width: 420px;
+      margin: 12px auto;
+      text-align: left;
+      font-size: 7px;
+      line-height: 2;
+      color: #cde;
+    }
+    #customRun .adv-grid input[type='number'] {
+      font-family: inherit;
+      font-size: 8px;
+      width: 64px;
+      padding: 6px;
+      margin-left: 6px;
+      background: #0d1f3c;
+      border: 1px solid #00f0ff;
+      color: #fff;
+    }
+    #customRun .adv-grid label { display: inline-block; min-width: 160px; color: #8ab; }
+    #chkCustomAdv { margin-right: 8px; accent-color: #00f0ff; }
   </style>
 </head>
 <body>
@@ -318,6 +357,7 @@
       <h1>NEON SURGE</h1>
       <p class="sub">Roguelike survival · waves · bosses · upgrades<br />Portrait · right-thumb joystick</p>
       <button class="neon" id="btnSolo">Solo Run</button>
+      <button class="neon" id="btnCustomRun">Custom Run</button>
       <button class="neon secondary" id="btnCoop">Co-op Lobby</button>
       <p class="sub" style="margin-top:24px;font-size:7px;">WASD moves on desktop. Audio out of scope v1.</p>
     </div>
@@ -327,6 +367,10 @@
       <div style="margin:16px 0;font-size:8px;">— or —</div>
       <input class="code" id="joinCode" maxlength="6" placeholder="CODE" />
       <button class="neon secondary" id="btnJoin">Join Room</button>
+      <div class="level-row" id="hostStartRow" style="display:none;">
+        <label for="selHostStartLevel">Host: start level (wave 1–10)</label>
+        <select id="selHostStartLevel" class="level-select"></select>
+      </div>
       <div class="lobby-panel">
         <h2>ROOM</h2>
         <div id="roomInfo" style="font-size:8px;line-height:1.8;">Not connected</div>
@@ -335,6 +379,39 @@
       </div>
       <button class="neon secondary" id="btnLobbyBack" style="margin-top:12px;">Back</button>
       <div id="lobbyErr" class="error-txt"></div>
+    </div>
+    <div id="customRun" class="screen hidden">
+      <h1>CUSTOM RUN</h1>
+      <p class="sub">Choose start wave, any starting weapon, and optional stat overrides (solo).</p>
+      <div class="level-row">
+        <label for="selCustomLevel">Start level (wave 1–10)</label>
+        <select id="selCustomLevel" class="level-select"></select>
+      </div>
+      <div class="level-row">
+        <label for="selCustomWeapon">Starting weapon</label>
+        <select id="selCustomWeapon" class="level-select"></select>
+      </div>
+      <div class="level-row" style="text-align:left;max-width:420px;">
+        <label style="display:flex;align-items:center;cursor:pointer;">
+          <input type="checkbox" id="chkCustomAdv" />
+          Advanced — manual stat modifiers (after level scaling)
+        </label>
+      </div>
+      <div id="customAdvPanel" class="adv-grid hidden">
+        <p class="sub" style="text-align:left;margin-bottom:10px;">
+          Values stack on top of <strong>system</strong> stats for the chosen level. Use 1 / 0 where noted for “no extra change.”
+        </p>
+        <div><label>Max HP ×</label><input type="number" id="advHpMult" value="1" min="0.4" max="3" step="0.05" /></div>
+        <div><label>Damage ×</label><input type="number" id="advDmgMult" value="1" min="0.3" max="3" step="0.05" /></div>
+        <div><label>Move speed ×</label><input type="number" id="advSpdMult" value="1" min="0.5" max="2" step="0.05" /></div>
+        <div><label>Attack rate ×</label><input type="number" id="advRateMult" value="1" min="0.5" max="2" step="0.05" /></div>
+        <div><label>Gun range ×</label><input type="number" id="advRangeMult" value="1" min="0.5" max="2" step="0.05" /></div>
+        <div><label>XP gain ×</label><input type="number" id="advXpMult" value="1" min="0.5" max="2.5" step="0.05" /></div>
+        <div><label>Armor + (flat)</label><input type="number" id="advArmorAdd" value="0" min="-20" max="80" step="1" /></div>
+        <div><label>Crit chance +</label><input type="number" id="advCritAdd" value="0" min="-0.15" max="0.5" step="0.01" /></div>
+      </div>
+      <button class="neon" id="btnCustomStart" style="margin-top:16px;">Start</button>
+      <button class="neon secondary" id="btnCustomBack" style="margin-top:8px;">Back</button>
     </div>
     <div id="game" class="screen hidden">
       <div id="hud">
@@ -512,7 +589,7 @@
       { hp: 60, sp: 30, dmg: 18, arm: 8, sz: 22 },
     ][typeIdx];
     const hp = base.hp * diff * 0.72;
-    const dmg = base.dmg * diff * 0.72;
+    const dmg = base.dmg * diff * 0.54;
     let sp = base.sp * diff * 0.94;
     sp = Math.min(sp, base.sp * 1.68);
     const arm = base.arm * diff * 0.75;
@@ -528,8 +605,8 @@
       y,
       vx: 0,
       vy: 0,
-      hp: 115,
-      mh: 115,
+      hp: 165,
+      mh: 165,
       speed: 180,
       dmgMult: 1,
       rateMult: 1,
@@ -555,6 +632,76 @@
       facing: 1,
       _animT: 0,
     };
+  }
+
+  /** Starting level L = 1..10 (same as first wave). Buffs stack only for L > 1. */
+  function applyStartLevelBonuses(pl, startWave) {
+    const L = Math.min(10, Math.max(1, startWave | 0));
+    const s = L - 1;
+    if (s <= 0) return;
+    const hpFact = 1 + 0.1 * s;
+    pl.mh *= hpFact;
+    pl.hp = pl.mh;
+    pl.dmgMult *= 1 + 0.05 * s;
+    pl.rateMult *= 1 + 0.04 * s;
+    pl.spdMult *= 1 + 0.022 * s;
+    pl.armor += Math.floor(s * 1.8);
+    pl.crit += 0.006 * s;
+    pl.xpMult *= 1 + 0.03 * s;
+  }
+
+  function applyCustomStatMods(pl, m) {
+    if (!m) return;
+    pl.mh *= m.hpMult;
+    pl.hp = pl.mh;
+    pl.dmgMult *= m.dmgMult;
+    pl.spdMult *= m.spdMult;
+    pl.rateMult *= m.rateMult;
+    pl.armor += m.armorAdd;
+    pl.crit += m.critAdd;
+    pl.rangeMult *= m.rangeMult;
+    pl.xpMult *= m.xpMult;
+  }
+
+  function readCustomAdvFromForm() {
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const num = (id, d) => {
+      const el = $(id);
+      const v = parseFloat(el && el.value);
+      return Number.isFinite(v) ? v : d;
+    };
+    const nInt = (id, d) => {
+      const el = $(id);
+      const v = parseInt(el && el.value, 10);
+      return Number.isFinite(v) ? v : d;
+    };
+    return {
+      hpMult: clamp(num('advHpMult', 1), 0.4, 3),
+      dmgMult: clamp(num('advDmgMult', 1), 0.3, 3),
+      spdMult: clamp(num('advSpdMult', 1), 0.5, 2),
+      rateMult: clamp(num('advRateMult', 1), 0.5, 2),
+      rangeMult: clamp(num('advRangeMult', 1), 0.5, 2),
+      xpMult: clamp(num('advXpMult', 1), 0.5, 2.5),
+      armorAdd: clamp(nInt('advArmorAdd', 0), -20, 80),
+      critAdd: clamp(num('advCritAdd', 0), -0.15, 0.5),
+    };
+  }
+
+  function resetCustomAdvFormDefaults() {
+    const defs = {
+      advHpMult: '1',
+      advDmgMult: '1',
+      advSpdMult: '1',
+      advRateMult: '1',
+      advRangeMult: '1',
+      advXpMult: '1',
+      advArmorAdd: '0',
+      advCritAdd: '0',
+    };
+    for (const k of Object.keys(defs)) {
+      const el = $(k);
+      if (el) el.value = defs[k];
+    }
   }
 
   function spawnEnemy(typeIdx, wave, pCount, px, py) {
@@ -589,9 +736,9 @@
     const bi = ((wave - 1) % 10);
     const diff = totalDifficulty(wave, pCount);
     const baseHp = [200, 180, 320, 240, 220, 200, 260, 350, 230, 280][bi];
-    const baseDmg = 15;
+    const baseDmg = 12;
     const mh = baseHp * diff * 2.55;
-    const dmg = baseDmg * diff * 2.75;
+    const dmg = baseDmg * diff * 2.45;
     const sp = 60 * diff * 0.72;
     const arm = diff * 3.5 + (bi === 2 ? diff * 3.5 : 0);
     return {
@@ -617,7 +764,71 @@
       clone: false,
       facing: 1,
       _animT: 0,
+      origBossMh: mh,
+      splitTriggered: false,
+      frozen: 0,
+      slowT: 0,
     };
+  }
+
+  function cloneBossSplitEnt(b) {
+    return {
+      boss: true,
+      bi: b.bi,
+      id: ++run.eid,
+      t: -1,
+      x: b.x,
+      y: b.y,
+      vx: 0,
+      vy: 0,
+      hp: b.hp,
+      mh: b.mh,
+      dmg: b.dmg,
+      sp: b.sp,
+      arm: b.arm,
+      sz: b.sz,
+      cd: 0,
+      timer: 0,
+      phase: 0,
+      charge: 0,
+      immuneT: 0,
+      facing: b.facing,
+      _animT: 0,
+      origBossMh: b.origBossMh,
+      splitTriggered: true,
+      frozen: 0,
+      slowT: 0,
+    };
+  }
+
+  function doSplitPrime(b) {
+    const preMh = b.origBossMh;
+    const mhEach = preMh * 0.4;
+    const pool = Math.max(1, b.hp);
+    const h1 = Math.min(mhEach, pool * 0.5);
+    const h2 = Math.min(mhEach, Math.max(0, pool - h1));
+    b.mh = mhEach;
+    b.hp = Math.max(1, h1);
+    b.sp *= 1.5;
+    b.x -= 35;
+    run.bossTwin = cloneBossSplitEnt(b);
+    run.bossTwin.hp = Math.max(1, h2 || mhEach * 0.5);
+    run.bossTwin.mh = mhEach;
+    run.bossTwin.x = b.x + 70;
+    run.bossTwin.y = b.y;
+  }
+
+  function tickBossCrowdControl(b, dt) {
+    if (b.bi === 9 && b.phase > 0) return 1;
+    if ((b.frozen || 0) > 0) {
+      b.frozen -= dt;
+      return 0;
+    }
+    if ((b.slowT || 0) > 0) {
+      b.slowT -= dt;
+      return 0.6;
+    }
+    return 1;
   }
 
   function nearestLivingPlayer(ex, ey) {
@@ -671,7 +882,17 @@
       run.killed++;
       run.killMap[killer && killer.id ? killer.id : 'p1'] = (run.killMap[killer && killer.id ? killer.id : 'p1'] || 0) + 1;
     } else {
+      if (run.bossTwin && (e === run.boss || e === run.bossTwin)) {
+        if (e === run.boss) {
+          run.boss = run.bossTwin;
+          run.bossTwin = null;
+        } else {
+          run.bossTwin = null;
+        }
+        return;
+      }
       run.boss = null;
+      run.bossTwin = null;
       showBossUi(false);
       endWaveClear();
     }
@@ -772,7 +993,14 @@
     }
     if (run.boss) {
       const d = dist(pl.x, pl.y, run.boss.x, run.boss.y);
-      if (d <= r && d < bd) best = run.boss;
+      if (d <= r && d < bd) {
+        bd = d;
+        best = run.boss;
+      }
+    }
+    if (run.bossTwin) {
+      const d = dist(pl.x, pl.y, run.bossTwin.x, run.bossTwin.y);
+      if (d <= r && d < bd) best = run.bossTwin;
     }
     return best;
   }
@@ -798,13 +1026,14 @@
           e.x += (dx / d) * w.knock;
           e.y += (dy / d) * w.knock;
         }
-        if (w.freeze) e.frozen = w.freeze;
+        if (w.freeze && !(e.boss && e.bi === 9 && e.phase > 0)) e.frozen = w.freeze;
         if (w.dodge) pl.dodgeNext = w.dodge;
         if (e.hp <= 0) killEnemy(e, pl);
       }
     };
     for (const e of run.enemies) hit(e);
     if (run.boss) hit(run.boss);
+    if (run.bossTwin) hit(run.bossTwin);
     run.flashRing = 0.12;
   }
 
@@ -837,9 +1066,8 @@
   function resolveProjHit(pr, e) {
     if (e.immuneT && e.immuneT > 0) return;
     const bounce =
-      run.boss &&
-      run.boss.bi === 8 &&
-      dist(run.boss.x, run.boss.y, pr.x, pr.y) < 100;
+      (run.boss && run.boss.bi === 8 && dist(run.boss.x, run.boss.y, pr.x, pr.y) < 100) ||
+      (run.bossTwin && run.bossTwin.bi === 8 && dist(run.bossTwin.x, run.bossTwin.y, pr.x, pr.y) < 100);
     if (bounce) {
       pr.vx = Math.cos(rand(0, 6.28)) * 300;
       pr.vy = Math.sin(rand(0, 6.28)) * 300;
@@ -855,6 +1083,9 @@
       }
       if (run.boss && dist(run.boss.x, run.boss.y, e.x, e.y) <= pr.ex) {
         applyDamageToEnemy(run.boss, pr.dmg * 0.6, owner, false);
+      }
+      if (run.bossTwin && dist(run.bossTwin.x, run.bossTwin.y, e.x, e.y) <= pr.ex) {
+        applyDamageToEnemy(run.bossTwin, pr.dmg * 0.6, owner, false);
       }
     }
     if (pr.slow) e.slowT = pr.slow;
@@ -900,16 +1131,21 @@
           break;
         }
       }
-      if (!hit && run.boss && dist(pr.x, pr.y, run.boss.x, run.boss.y) < run.boss.sz * 0.65) {
-        if (run.boss.immuneT > 0) {
-          /* phase wraith / iron */
-        } else {
-          const o = run.players.find((p) => p.id === pr.own);
-          applyDamageToEnemy(run.boss, pr.dmg, o, pr.crit);
-          if (run.boss.hp <= 0) killEnemy(run.boss, o);
+      if (!hit) {
+        const procBossProj = (bx) => {
+          if (!bx || dist(pr.x, pr.y, bx.x, bx.y) >= bx.sz * 0.65) return false;
+          if (!(bx.immuneT > 0)) {
+            const o = run.players.find((p) => p.id === pr.own);
+            applyDamageToEnemy(bx, pr.dmg, o, pr.crit);
+            if (pr.slow && !(bx.bi === 9 && bx.phase > 0)) bx.slowT = pr.slow;
+            if (bx.hp <= 0) killEnemy(bx, o);
+          }
+          const ix = run.projs.indexOf(pr);
+          if (ix >= 0) run.projs.splice(ix, 1);
+          return true;
+        };
+        if (procBossProj(run.boss) || procBossProj(run.bossTwin)) {
         }
-        const ix = run.projs.indexOf(pr);
-        if (ix >= 0) run.projs.splice(ix, 1);
       }
     }
   }
@@ -947,7 +1183,7 @@
       e.x += (dx / d) * e.sp * slowm * dt;
       e.y += (dy / d) * e.sp * slowm * dt;
       if (d < 20) {
-        explode(e.x, e.y, 80, 40, null);
+        explode(e.x, e.y, 80, 32, null);
         killEnemy(e, null);
       }
       return;
@@ -1049,7 +1285,8 @@
   function enemyTouchDamage(e, pl) {
     if (pl.down) return;
     if (dist(pl.x, pl.y, e.x, e.y) > e.sz * 0.55 + 10) return;
-    damagePlayer(pl, e.dmg, !!e.boss);
+    const mult = e.boss && e.bi === 9 && e.phase > 0 ? 2 : 1;
+    damagePlayer(pl, e.dmg * mult, !!e.boss);
   }
 
   function updatePlayers(dt) {
@@ -1113,13 +1350,18 @@
     if (run.pCount > 1 && allDown) gameOver();
   }
 
-  function updateBoss(dt) {
-    const b = run.boss;
+  function updateBossEntity(b, dt) {
     if (!b) return;
     if (b.immuneT > 0) b.immuneT -= dt;
     b.timer += dt;
     const p = nearestLivingPlayer(b.x, b.y);
     const bi = b.bi;
+
+    if (bi === 3 && !run.bossTwin && !b.splitTriggered && b.hp <= b.origBossMh * 0.5) {
+      b.splitTriggered = true;
+      doSplitPrime(b);
+    }
+
     if (bi === 0 && b.timer > 13) {
       b.timer = 0;
       for (let i = 0; i < 3; i++) run.enemies.push(spawnEnemy(0, run.wave, run.pCount, b.x, b.y));
@@ -1136,18 +1378,19 @@
       b.x = clamp(b.x, 40, arena.w - 40);
       b.y = clamp(b.y, 40, arena.h - 40);
       if (dist(b.x, b.y, p.x, p.y) < b.sz * 0.5) damagePlayer(p, b.dmg * 3, true);
+      b._animT = (b._animT || 0) + dt * 18;
+      if (p && Math.abs(p.x - b.x) > 3) b.facing = p.x > b.x ? 1 : -1;
       return;
     }
     if (bi === 2 && b.timer > 15) {
       b.timer = 0;
       b.immuneT = 3;
+      for (const pl of run.players) {
+        if (pl.down) continue;
+        if (dist(pl.x, pl.y, b.x, b.y) <= 70) damagePlayer(pl, b.dmg, true);
+      }
     }
-    if (bi === 4 && b.hp < b.mh * 0.5 && !b.clone) {
-      b.clone = true;
-      b.mh *= 0.7;
-      b.hp = Math.min(b.hp, b.mh);
-    }
-    if (bi === 5 && b.timer > 3) {
+    if (bi === 4 && b.timer > 3) {
       b.timer = 0;
       for (let k = 0; k < 8; k++) {
         const ang = (k / 8) * Math.PI * 2;
@@ -1163,24 +1406,24 @@
         });
       }
     }
-    if (bi === 6 && b.timer > 8) {
+    if (bi === 5 && b.timer > 8) {
       b.timer = 0;
       b.immuneT = 2;
       b.x = rand(60, arena.w - 60);
       b.y = rand(60, arena.h - 60);
     }
-    if (bi === 7) {
-      const intv = b.hp < b.mh * 0.3 ? 5.5 : 10;
+    if (bi === 6) {
+      const intv = b.hp < b.mh * 0.3 ? 3 : 6;
       if (b.timer > intv) {
         b.timer = 0;
         run.enemies.push(spawnEnemy(6, run.wave, run.pCount, b.x, b.y));
       }
     }
-    if (bi === 8) {
+    if (bi === 7) {
       const mul = b.hp < b.mh * 0.3 ? 0.05 : 0.02;
       b.hp = Math.min(b.mh, b.hp + b.mh * mul * dt);
     }
-    if (bi === 9 && b.timer > 8) {
+    if (bi === 8 && b.timer > 4) {
       b.timer = 0;
       run.enemies.push(spawnEnemy(8, run.wave, run.pCount, b.x, b.y));
       run.enemies.push(spawnEnemy(8, run.wave, run.pCount, b.x, b.y));
@@ -1188,12 +1431,13 @@
     let spd = b.sp;
     if (bi === 0 && b.hp < b.mh * 0.5) spd *= 1.3;
     if (bi === 9 && b.phase > 0) spd *= 2.5;
+    const cc = tickBossCrowdControl(b, dt);
     if (p && b.immuneT <= 0) {
       const dx = p.x - b.x,
         dy = p.y - b.y,
         d = Math.hypot(dx, dy) || 1;
-      b.x += (dx / d) * spd * 0.35 * dt;
-      b.y += (dy / d) * spd * 0.35 * dt;
+      b.x += (dx / d) * spd * 0.35 * dt * cc;
+      b.y += (dy / d) * spd * 0.35 * dt * cc;
     }
     if (bi === 9 && b.timer > 10) {
       b.timer = 0;
@@ -1203,14 +1447,20 @@
       b.phase -= dt;
     }
     if (p) enemyTouchDamage(b, p);
-    b._animT = (b._animT || 0) + dt * (b.charge > 0 ? 18 : 7);
+    b._animT = (b._animT || 0) + dt * 7;
     if (p && Math.abs(p.x - b.x) > 3) b.facing = p.x > b.x ? 1 : -1;
+  }
+
+  function updateBoss(dt) {
+    if (!run.boss) return;
+    updateBossEntity(run.boss, dt);
+    if (run.bossTwin) updateBossEntity(run.bossTwin, dt);
   }
 
   function startWave() {
     run.phase = 'combat';
     run.spawned = 0;
-    run.toSpawn = Math.ceil(9 * (1 + 0.26 * run.wave));
+    run.toSpawn = Math.ceil(6.5 * (1 + 0.2 * run.wave));
     run.killed = 0;
     run.bossSpawned = false;
     run.enemies = [];
@@ -1227,8 +1477,8 @@
   function spawnTick(dt) {
     if (run.spawned < run.toSpawn) {
       run.spawnAcc += dt;
-      while (run.spawnAcc >= 0.12 && run.spawned < run.toSpawn) {
-        run.spawnAcc -= 0.12;
+      while (run.spawnAcc >= 0.26 && run.spawned < run.toSpawn) {
+        run.spawnAcc -= 0.26;
         const ty = run.spawnTypes[run.spawned];
         run.enemies.push(spawnEnemy(ty, run.wave, run.pCount, 0, 0));
         run.spawned++;
@@ -1236,6 +1486,7 @@
     }
     if (run.killed >= run.toSpawn * 0.85 && !run.bossSpawned) {
       run.bossSpawned = true;
+      run.bossTwin = null;
       run.boss = spawnBoss(run.wave, run.pCount);
       showBossBanner(BOSS_NAMES[run.boss.bi]);
       showBossUi(true);
@@ -1300,6 +1551,19 @@
             mh: run.boss.mh,
             sz: run.boss.sz,
             immuneT: run.boss.immuneT || 0,
+            phase: run.boss.phase || 0,
+          }
+        : null,
+      bossTwin: run.bossTwin
+        ? {
+            bi: run.bossTwin.bi,
+            x: run.bossTwin.x,
+            y: run.bossTwin.y,
+            hp: run.bossTwin.hp,
+            mh: run.bossTwin.mh,
+            sz: run.bossTwin.sz,
+            immuneT: run.bossTwin.immuneT || 0,
+            phase: run.bossTwin.phase || 0,
           }
         : null,
       projs: run.projs.map((pr) => ({
@@ -1370,10 +1634,16 @@
           sz: B.sz || 48,
           cd: 0,
           timer: 0,
-          phase: 0,
+          phase: B.phase || 0,
           charge: 0,
           immuneT: B.immuneT || 0,
           clone: false,
+          origBossMh: B.mh,
+          splitTriggered: false,
+          frozen: 0,
+          slowT: 0,
+          facing: 1,
+          _animT: 0,
         };
       } else {
         run.boss.bi = B.bi;
@@ -1383,9 +1653,55 @@
         run.boss.mh = B.mh;
         run.boss.sz = B.sz || run.boss.sz;
         run.boss.immuneT = B.immuneT || 0;
+        if (B.phase != null) run.boss.phase = B.phase;
+      }
+      if (m.bossTwin) {
+        const T = m.bossTwin;
+        if (!run.bossTwin) {
+          run.bossTwin = {
+            boss: true,
+            bi: T.bi,
+            id: 0,
+            t: -1,
+            x: T.x,
+            y: T.y,
+            vx: 0,
+            vy: 0,
+            hp: T.hp,
+            mh: T.mh,
+            dmg: 0,
+            sp: 0,
+            arm: 0,
+            sz: T.sz || 48,
+            cd: 0,
+            timer: 0,
+            phase: T.phase || 0,
+            charge: 0,
+            immuneT: T.immuneT || 0,
+            clone: false,
+            splitTriggered: true,
+            origBossMh: run.boss.origBossMh || T.mh,
+            frozen: 0,
+            slowT: 0,
+            facing: 1,
+            _animT: 0,
+          };
+        } else {
+          run.bossTwin.bi = T.bi;
+          run.bossTwin.x = T.x;
+          run.bossTwin.y = T.y;
+          run.bossTwin.hp = T.hp;
+          run.bossTwin.mh = T.mh;
+          run.bossTwin.sz = T.sz || run.bossTwin.sz;
+          run.bossTwin.immuneT = T.immuneT || 0;
+          if (T.phase != null) run.bossTwin.phase = T.phase;
+        }
+      } else {
+        run.bossTwin = null;
       }
     } else if (m.boss === null) {
       run.boss = null;
+      run.bossTwin = null;
       showBossUi(false);
     }
     if (m.projs) {
@@ -1438,12 +1754,6 @@
           ws.send(JSON.stringify(serializeGameState()));
         } catch (_) {}
       }
-    }
-    if (run.boss) {
-      const pct = run.boss.hp / run.boss.mh;
-      $('bossBarFill').style.transform = 'scaleX(' + Math.max(0, pct) + ')';
-      $('bossRow').style.boxShadow =
-        pct < 0.25 ? '0 0 20px rgba(255,60,60,0.9)' : 'none';
     }
   }
 
@@ -1519,14 +1829,14 @@
   }
 
   const STAT_UPS = [
-    { id: 'hp', name: 'NANO PLATING', desc: '+20% Max HP, heal 20', apply: (p) => { p.mh *= 1.2; p.hp = Math.min(p.mh, p.hp + 20); } },
-    { id: 'spd', name: 'SPRINT CORE', desc: '+15% Move Speed', apply: (p) => { p.spdMult *= 1.15; } },
-    { id: 'dmg', name: 'OVERCLOCK', desc: '+25% Damage', apply: (p) => { p.dmgMult *= 1.25; } },
-    { id: 'rate', name: 'TURBO SERVOS', desc: '+20% Attack Rate', apply: (p) => { p.rateMult *= 1.2; } },
-    { id: 'arm', name: 'BARRIER mesh', desc: '+10 Armor', apply: (p) => { p.armor += 10; } },
-    { id: 'crit', name: 'LUCK CHIP', desc: '+10% Crit Chance', apply: (p) => { p.crit += 0.1; } },
-    { id: 'rng', name: 'TARGETING AI', desc: '+30% Gun Range', apply: (p) => { p.rangeMult *= 1.3; } },
-    { id: 'xp', name: 'DATA LEAK', desc: '+20% XP gain', apply: (p) => { p.xpMult *= 1.2; } },
+    { id: 'hp', name: 'NANO PLATING', desc: '+28% Max HP, heal 35', apply: (p) => { p.mh *= 1.28; p.hp = Math.min(p.mh, p.hp + 35); } },
+    { id: 'spd', name: 'SPRINT CORE', desc: '+18% Move Speed', apply: (p) => { p.spdMult *= 1.18; } },
+    { id: 'dmg', name: 'OVERCLOCK', desc: '+32% Damage', apply: (p) => { p.dmgMult *= 1.32; } },
+    { id: 'rate', name: 'TURBO SERVOS', desc: '+25% Attack Rate', apply: (p) => { p.rateMult *= 1.25; } },
+    { id: 'arm', name: 'BARRIER mesh', desc: '+12 Armor', apply: (p) => { p.armor += 12; } },
+    { id: 'crit', name: 'LUCK CHIP', desc: '+12% Crit Chance', apply: (p) => { p.crit += 0.12; } },
+    { id: 'rng', name: 'TARGETING AI', desc: '+35% Gun Range', apply: (p) => { p.rangeMult *= 1.35; } },
+    { id: 'xp', name: 'DATA LEAK', desc: '+25% XP gain', apply: (p) => { p.xpMult *= 1.25; } },
   ];
 
   function shuffleInPlace(a) {
@@ -1869,6 +2179,18 @@
       ' &nbsp; RNG ' +
       (w.kind === 'gun' ? (200 * pl.rangeMult).toFixed(0) : w.r) +
       '';
+    if (run.boss && !$('bossRow').classList.contains('hidden')) {
+      let pct = run.boss.hp / run.boss.mh;
+      if (run.bossTwin) {
+        pct = (run.boss.hp + run.bossTwin.hp) / (run.boss.mh + run.bossTwin.mh);
+      }
+      $('bossBarFill').style.transform = 'scaleX(' + Math.max(0, pct) + ')';
+      $('bossRow').style.boxShadow =
+        pct < 0.25 ? '0 0 20px rgba(255,60,60,0.9)' : 'none';
+      let nm = 'WAVE ' + run.wave + ' — ' + BOSS_NAMES[run.boss.bi];
+      if (run.bossTwin && run.boss.bi === 3) nm += ' ×2';
+      $('bossName').textContent = nm;
+    }
   }
 
   function gameOver() {
@@ -1924,6 +2246,10 @@
         if (run.boss) {
           run.boss.x *= sx;
           run.boss.y *= sy;
+        }
+        if (run.bossTwin) {
+          run.bossTwin.x *= sx;
+          run.bossTwin.y *= sy;
         }
         for (const pr of run.projs) {
           pr.x *= sx;
@@ -2274,6 +2600,7 @@
       for (const pl of run.players) pl._animT = (pl._animT || 0) + b;
       for (const e of run.enemies) e._animT = (e._animT || 0) + b;
       if (run.boss) run.boss._animT = (run.boss._animT || 0) + b;
+      if (run.bossTwin) run.bossTwin._animT = (run.bossTwin._animT || 0) + b;
     }
     let ox = 0,
       oy = 0;
@@ -2289,6 +2616,9 @@
     }
     if (run.boss) {
       drawBossSprite(run.boss);
+    }
+    if (run.bossTwin) {
+      drawBossSprite(run.bossTwin);
     }
     for (const pr of run.projs) {
       ctx.save();
@@ -2393,14 +2723,17 @@
     show('lobby', false);
     show('game', true);
     show('gameover', false);
+    const initialWave = Math.min(10, Math.max(1, Math.floor(Number(opts.startWave)) || 1));
     run = {
-      wave: 1,
+      wave: initialWave,
+      startLevel: initialWave,
       xp: 0,
       phase: 'combat',
       enemies: [],
       projs: [],
       floats: [],
       boss: null,
+      bossTwin: null,
       players: [],
       pCount: opts.players || 1,
       localIdx: opts.localIdx || 0,
@@ -2416,12 +2749,21 @@
     const cx = arena.w * 0.5,
       cy = arena.h * 0.5;
     remoteInput = {};
+    const swp = opts.startWeaponId && weaponById(opts.startWeaponId) ? opts.startWeaponId : null;
     for (let i = 0; i < run.pCount; i++) {
       const pl = makePlayer(i, cx + i * 28, cy);
       if (playerList[i]) pl.id = playerList[i].id;
+      if (swp) pl.weaponId = swp;
+      applyStartLevelBonuses(pl, initialWave);
+      if (opts.customStatMods) applyCustomStatMods(pl, opts.customStatMods);
       run.players.push(pl);
     }
     isHost = opts.host !== false;
+    run._resumeOpts = {
+      startWave: initialWave,
+      startWeaponId: swp || 'G1',
+      customStatMods: opts.customStatMods || null,
+    };
     startWave();
     refreshHud();
   }
@@ -2541,7 +2883,58 @@
     }
     roomCode = '';
     playerList = [{ id: 'p1', name: 'P1' }];
-    startRun({ players: 1, host: true, coop: false });
+    startRun({
+      players: 1,
+      host: true,
+      coop: false,
+      startWave: 1,
+      startWeaponId: 'G1',
+      customStatMods: null,
+    });
+  };
+  $('btnCustomRun').onclick = () => {
+    show('menu', false);
+    show('customRun', true);
+    resetCustomAdvFormDefaults();
+    const chk = $('chkCustomAdv');
+    const panel = $('customAdvPanel');
+    if (chk) chk.checked = false;
+    if (panel) panel.classList.add('hidden');
+  };
+  $('btnCustomBack').onclick = () => {
+    show('customRun', false);
+    show('menu', true);
+  };
+  const chkAdv = $('chkCustomAdv');
+  if (chkAdv) {
+    chkAdv.addEventListener('change', () => {
+      const panel = $('customAdvPanel');
+      if (!panel) return;
+      panel.classList.toggle('hidden', !chkAdv.checked);
+    });
+  }
+  $('btnCustomStart').onclick = () => {
+    if (ws) {
+      try {
+        ws.close();
+      } catch (_) {}
+      ws = null;
+    }
+    roomCode = '';
+    playerList = [{ id: 'p1', name: 'P1' }];
+    const sw = parseInt($('selCustomLevel').value, 10) || 1;
+    const wid = ($('selCustomWeapon') && $('selCustomWeapon').value) || 'G1';
+    const useAdv = $('chkCustomAdv') && $('chkCustomAdv').checked;
+    const mods = useAdv ? readCustomAdvFromForm() : null;
+    show('customRun', false);
+    startRun({
+      players: 1,
+      host: true,
+      coop: false,
+      startWave: sw,
+      startWeaponId: weaponById(wid) ? wid : 'G1',
+      customStatMods: mods,
+    });
   };
   $('btnCoop').onclick = () => {
     show('menu', false);
@@ -2559,13 +2952,41 @@
   $('btnJoin').onclick = () => connectWs('join');
   $('btnStart').onclick = () => {
     if (ws && roomCode) {
-      ws.send(JSON.stringify({ type: 'GAME_START', roomCode, playerCount: playerList.length, seed: Date.now() }));
-      startRun({ players: playerList.length, host: true, coop: true, localIdx: 0 });
+      const sw = parseInt($('selHostStartLevel').value, 10) || 1;
+      ws.send(
+        JSON.stringify({
+          type: 'GAME_START',
+          roomCode,
+          playerCount: playerList.length,
+          seed: Date.now(),
+          startWave: sw,
+        }),
+      );
+      startRun({ players: playerList.length, host: true, coop: true, localIdx: 0, startWave: sw });
     }
   };
   $('btnAgain').onclick = () => {
     show('gameover', false);
-    startRun({ players: 1, host: true });
+    const ro = run && run._resumeOpts;
+    if (ro) {
+      startRun({
+        players: 1,
+        host: true,
+        coop: false,
+        startWave: ro.startWave,
+        startWeaponId: ro.startWeaponId,
+        customStatMods: ro.customStatMods,
+      });
+    } else {
+      startRun({
+        players: 1,
+        host: true,
+        coop: false,
+        startWave: 1,
+        startWeaponId: 'G1',
+        customStatMods: null,
+      });
+    }
   };
   $('btnMenu').onclick = () => {
     show('gameover', false);
@@ -2658,11 +3079,13 @@
       }
       if (m.type === 'GAME_START') {
         const idx = Math.max(0, playerList.findIndex((p) => p.id === myId));
+        const sw = m.startWave != null ? m.startWave : 1;
         startRun({
           players: m.playerCount || playerList.length,
           host: false,
           coop: true,
           localIdx: idx,
+          startWave: sw,
         });
       }
       if (m.type === 'ERROR') $('lobbyErr').textContent = m.message || 'Error';
@@ -2683,22 +3106,64 @@
     const p = playerList.length || 1;
     const d1 = totalDifficulty(1, p);
     const d7 = totalDifficulty(7, p);
+    const swHost = isHost ? parseInt($('selHostStartLevel').value, 10) || 1 : null;
+    const startLine = isHost
+      ? 'START WAVE: ' + swHost + ' (baseline stats scaled to match)<br>'
+      : 'START WAVE: host chooses when starting<br>';
     $('diffPreview').innerHTML =
+      startLine +
       'PLAYERS: ' +
       p +
       ' / 4<br>WAVE 1 DIFFICULTY: &nbsp;' +
       d1.toFixed(2) +
       '×<br>WAVE 7 DIFFICULTY: &nbsp;' +
       d7.toFixed(2) +
-      '×<br>⚠ THIS IS GOING TO HURT';
+      '×<br>⚠ CO-OP SCALING STILL HURTS';
     $('btnStart').style.display = isHost ? 'block' : 'none';
+    const hsr = $('hostStartRow');
+    if (hsr) hsr.style.display = isHost ? 'block' : 'none';
   }
 
   window.addEventListener('resize', () => {
     resize();
   });
+  function fillStartLevelSelects() {
+    let h = '';
+    for (let w = 1; w <= 10; w++) {
+      h += '<option value="' + w + '">Level ' + w + ' (wave ' + w + ')</option>';
+    }
+    const a = $('selCustomLevel');
+    const b = $('selHostStartLevel');
+    if (a) a.innerHTML = h;
+    if (b) b.innerHTML = h;
+  }
+
+  function fillCustomWeaponSelect() {
+    const sel = $('selCustomWeapon');
+    if (!sel || !WEAPONS.length) return;
+    let h = '<optgroup label="Guns">';
+    for (const w of WEAPONS) {
+      if (w.kind === 'gun') h += '<option value="' + w.id + '">' + w.id + ' — ' + w.name + '</option>';
+    }
+    h += '</optgroup><optgroup label="Melee">';
+    for (const w of WEAPONS) {
+      if (w.kind === 'mel') h += '<option value="' + w.id + '">' + w.id + ' — ' + w.name + '</option>';
+    }
+    h += '</optgroup>';
+    sel.innerHTML = h;
+    sel.value = 'G1';
+  }
+
   canvas = $('cv');
   ctx = canvas.getContext('2d');
+  fillStartLevelSelects();
+  fillCustomWeaponSelect();
+  const hsl = $('selHostStartLevel');
+  if (hsl) {
+    hsl.addEventListener('change', () => {
+      if (isHost && $('lobby') && !$('lobby').classList.contains('hidden')) refreshLobby();
+    });
+  }
   resize();
   requestAnimationFrame(frame);
 })();
