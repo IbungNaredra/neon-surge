@@ -1,0 +1,15 @@
+{
+  "name": "neon-surge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEON SURGE — WebSocket relay server",
+  "dependencies": {
+    "ws": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
